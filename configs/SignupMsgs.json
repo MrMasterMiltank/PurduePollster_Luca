@@ -1,0 +1,70 @@
+{
+    "1033778414890528860": {
+        "type": "Level1",
+        "numEmoji": 5,
+        "roles": [
+            "RaidSableye",
+            "RaidPurrloin",
+            "RaidYamask",
+            "RaidYamaskGalarian",
+            "RaidPhantump"
+        ]
+    },
+    "1033778426626183301": {
+        "type": "Level3",
+        "numEmoji": 5,
+        "roles": [
+            "RaidGengar",
+            "RaidUmbreon",
+            "RaidDrifblim",
+            "RaidDrapion",
+            "RaidLevel3P5"
+        ]
+    },
+    "1033778436466028544": {
+        "type": "Level4",
+        "numEmoji": 1,
+        "roles": [
+            "RaidLevel4P1"
+        ]
+    },
+    "1033778440425459772": {
+        "type": "Mega",
+        "numEmoji": 3,
+        "roles": [
+            "RaidBanetteMega",
+            "RaidMegaP2",
+            "RaidMegaP3"
+        ]
+    },
+    "1033778449933946940": {
+        "type": "Elite",
+        "numEmoji": 3,
+        "roles": [
+            "RaidEliteP1",
+            "RaidEliteP2",
+            "RaidEliteP3"
+        ]
+    },
+    "1033778458653892698": {
+        "type": "Level5",
+        "numEmoji": 5,
+        "roles": [
+            "RaidGiratinaAltered",
+            "RaidLevel5P2",
+            "RaidLevel5P3",
+            "RaidLevel5P4",
+            "RaidLevel5P5"
+        ]
+    },
+    "1033778470687346778": {
+        "type": "General",
+        "numEmoji": 4,
+        "roles": [
+            "RaidLevel5",
+            "RaidElite",
+            "RaidMega",
+            "PossShiny"
+        ]
+    }
+}

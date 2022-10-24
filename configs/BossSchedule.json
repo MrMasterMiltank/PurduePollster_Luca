@@ -1,0 +1,104 @@
+{
+    "current": {
+        "type": "Default",
+        "startTime": "10/20/2022 10:00:00 AM",
+        "endTime": "11/01/2022 10:00:00 AM",
+        "Level5": [
+            "GiratinaAltered"
+        ],
+        "Elite": [],
+        "SuperMega": [],
+        "Mega": [
+            "BanetteMega"
+        ],
+        "Level4": [],
+        "Level3": [
+            "Gengar",
+            "Umbreon",
+            "Drifblim",
+            "Drapion"
+        ],
+        "Level1": [
+            "Sableye",
+            "Purrloin",
+            "Yamask",
+            "YamaskGalarian",
+            "Phantump"
+        ]
+    },
+    "last": {
+        "type": "Default",
+        "startTime": "10/17/2022 08:00:00 PM",
+        "endTime": "10/20/2022 10:00:00 AM",
+        "Level5": [
+            "Xerneas"
+        ],
+        "Elite": [],
+        "SuperMega": [],
+        "Mega": [
+            "ManectricMega"
+        ],
+        "Level4": [],
+        "Level3": [
+            "WeezingGalarian",
+            "Azumarill",
+            "Togetic",
+            "Mawile"
+        ],
+        "Level1": [
+            "VulpixAlola",
+            "Jigglypuff",
+            "Spritzee",
+            "Swirlix",
+            "Dedenne"
+        ]
+    },
+    "schedules": [
+        {
+            "type": "Default",
+            "startTime": "11/01/2022 10:00:00 AM",
+            "endTime": "11/02/2022 08:00:00 PM",
+            "Level5": [
+                "GiratinaOrigin"
+            ],
+            "Elite": [],
+            "SuperMega": [],
+            "Mega": [
+                "BanetteMega"
+            ],
+            "Level4": [],
+            "Level3": [
+                "Dragonite",
+                "Sableye",
+                "Druddigon"
+            ],
+            "Level1": [
+                "Duskull"
+            ]
+        },
+        {
+            "type": "Event",
+            "name": "Raid Hour",
+            "startTime": "10/26/2022 06:00:00 PM",
+            "endTime": "10/26/2022 07:00:00 PM",
+            "Level5": [
+                "GiratinaAltered"
+            ],
+            "raidTimerOverride": {
+                "Level5": 60
+            }
+        },
+        {
+            "type": "Event",
+            "name": "Raid Hour",
+            "startTime": "11/02/2022 06:00:00 PM",
+            "endTime": "11/02/2022 07:00:00 PM",
+            "Level5": [
+                "GiratinaOrigin"
+            ],
+            "raidTimerOverride": {
+                "Level5": 60
+            }
+        }
+    ]
+}
