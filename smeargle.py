@@ -29,12 +29,14 @@ from fuzzywuzzy import fuzz
 #---------------------------------------------------------------------------------#
 #---------------------------------Local Settings----------------------------------#
 #---------------------------------------------------------------------------------#
-
-tes.pytesseract.tesseract_cmd = r"I:\Program Files (x86)\Tesseract-OCR\tesseract.exe"
+#DO NOT SPECIFY THE TESSERACT LOCATION THROUGH PYTESSERACT OR rPi CANT READ IT
+#tes.pytesseract.tesseract_cmd = "I:\Program Files (x86)\Tesseract-OCR\tesseract.exe"
+#tes.pytesseract.tesseract_cmd ="/usr/share/tesseract-ocr/4.00/tessdata"
+tesseract_dir="/usr/share/tesseract-ocr/4.00/tessdata"
 # path to the cogs
-cogPath = "I:\\PurdueTest\\cogs\\CogManager\\cogs\\"
+cogPath = "//home//pi//LucaPollster//PurduePollster_Luca-main//cogs//CogManager//cogs//"
 # path to the config json files
-configPath = cogPath + "configs\\"
+configPath = cogPath + "configs//"
 # path to this python script
 smearglePath = cogPath + "smeargle.py"
 # path to the game master file
@@ -49,45 +51,45 @@ wordDict = enchant.Dict("en_US")
 # server id, this bot will only serve one server
 #serverId = 730448547014639646
 # user ids overrides
-lucaId = 282002735862382592
+lucaId = 345200594421547018
 # channel ids
 # raid-sightings channel id
-sightingChanId = 641135454305124353
+sightingChanId = 833521691371634726
 # raid-role-signups channel id
 signupChanId = 1033408042819145869
 # active-raids channel id
-activeChanId = 641163543231725578
+activeChanId = 833521691371634727
 # all raid-channel ids
 raidChanIds = [
-    641129991534280724,641129969216389121,641129980306259968,641129929164980235,641129958051151892,641129946475134976,641129919065358358,641129484107382794,641129497227165732,641129210454212609,641128903556988929,641128889296486450,
-    641130294191325194,641130339653255179,641130302240194579,641130351951085589,641130285378830355,641130325577039873,641130315112382464,641130248813150209,641130274855452696,641130262968664092,641130009666256934,641129999830876181,  
-    641128880161161227,641128916068728833,641128867360276511,641128798041014282,641128785332273182,641128772338319360,641128757096349696,641128743473119273,641128731187871792,641128657296818188,641128642621210634,641128364685393952
+    833521691618705442,833521691618705443,833521691618705444,833521691618705445,833521691618705446,833521691618705447,833521691865907240,833521691865907241,833521691865907242,833521691865907243,833521691865907244,833521691865907245,
+    833521691865907247,833521691865907248,833521691865907249,833521692235399168,833521692235399169,833521692235399170,833521692235399171,833521692235399172,833521692235399173,833521692235399174,833521692235399175,833521692235399176,  
+    833521692381937724,833521692381937725,833521692381937726,833521692381937727,833521692381937728,833521692381937729,833521692381937730,833521692381937731,833521692381937732,833521692381937733,833521692558884904,833521692558884905
 ]
 # bot-debug channel id
-debugChanId = 641155282285625356
+debugChanId = 833521691153006636
 # channels where commands by everyone are potentially allowed
 allChanIds = raidChanIds.copy()
 allChanIds.extend([sightingChanId])
 # category ids
 # warehouse category id
-warehouseId = 1033411036939829258
+warehouseId = 1034297217575567430
 # raid channels category id
-raidCategoryId = 1033411177843282041
+raidCategoryId = 833521691618705441
 # role ids
 # shiny role name
 raidShinyName = "PossShiny"
 # raid role ids
 roleIds = {
-    "RaidLevel5" : 403577542302498867,
-    "RaidElite" : 1033410226520608848,
-    "RaidMega" : 748534319269806102,
-    raidShinyName : 1033413040705642517,
-    "Level5" : [1033412062254207046, 1033774008774180894, 1033774035118592080, 1033774075870449745, 1033774116353875968],
-    "Elite" : [1033412735586795600, 1033774677023268864, 1033774715652804618],
-    "Mega" : [1033774564699811880, 1033774599944544256, 1033774637793943612],
-    "Level4" : [403944168738652170],
-    "Level3" : [403944208727277569, 1033774190127480862, 1033774237720252496, 1033774290904043562, 1033774334323474532],
-    "Level1" : [1033774382952222720, 1033774422840066098, 1033774461431840889, 1033774490825539715, 1033774524010860544],
+    "RaidLevel5" : 833521690787971134,
+    "RaidElite" : 1035752073750401074,
+    "RaidMega" : 837465640343437352,
+    raidShinyName : 833521690759790612,
+    "Level5" : [1035743016004096050, 1035743064871944202,1035743096501174332,1035743141120188416,1035743169062654022],
+    "Elite" : [1035743621225386044, 1035743643887206430,1035743670982430720],
+    "Mega" : [1035746066752081961,1035746091892756531, 1035746116068716615],
+    "Level4" : [1035746907147993148],
+    "Level3" : [1035747048827404369,1035747075322826803,1035747111775502416,1035747175071760384,1035747204524154950],
+    "Level1" : [1035747531189141514,1035747565699870810,1035747592434360341,1035747657882292364,1035747683517861960],
 }
 tierNames = {
     "SuperMega" : 6,
@@ -3046,7 +3048,7 @@ class Smeargle(commands.Cog):
             if debugMode:
                 cv.imwrite("Match_" + debugName + str(nAttempt+1) + ".png", lvldet)
                     
-            contours, heirarchy = cv.findContours(lvldet.copy(), 
+            im3,contours, heirarchy = cv.findContours(lvldet.copy(), 
                                                   cv.RETR_EXTERNAL,
                                                   cv.CHAIN_APPROX_SIMPLE) 
 
@@ -3227,6 +3229,7 @@ class Smeargle(commands.Cog):
                 
                 imgorig = cv.imread("OriginalImage.png", 0) # grayscale
                 cv.imwrite("GrayScaleImage.png", imgorig)
+                print(os.getcwd())                
                 template = cv.imread("ExitButtonTemplate.png", 0) # grayscale
                 imgThres = cv.adaptiveThreshold(imgorig, 255, 
                                                 cv.ADAPTIVE_THRESH_MEAN_C,
@@ -3273,7 +3276,7 @@ class Smeargle(commands.Cog):
                     campfireText = tes.image_to_string(imgText,
                                                        config="--psm 6 --oem 3 -c tessedit_char_whitelist=" + 
                                                        "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789 --tessdata-dir " +
-                                                       r'"I:\Program Files (x86)\Tesseract-OCR\tessdata"')
+                                                       '"' + tesseract_dir +'"')
                     print("on_message: text read: " + campfireText)
                     
                     testStrs = campfireText.split("\n")
@@ -3457,15 +3460,16 @@ class Smeargle(commands.Cog):
                         for nThres in range(252, 255):
                             gray, thresh = cv.threshold(imgText, nThres, 255, cv.THRESH_BINARY)
                             
-                            contours, heirarchy = cv.findContours(thresh, 
+                            im3,contours, heirarchy = cv.findContours(thresh, 
                                                                   cv.RETR_EXTERNAL, 
                                                                   cv.CHAIN_APPROX_SIMPLE)
                             cv.imwrite("Thres_BossNameDirect" + str(nThres) + ".png", thresh)
-                            test_str_1 = tes.image_to_boxes(thresh,
-                                                            config="--psm 7 --oem 3 -c tessedit_char_whitelist=" + 
-                                                            "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789 --tessdata-dir " +
-                                                            r'"I:\Program Files (x86)\Tesseract-OCR\tessdata"')
-                        
+                            #test_str_1 = tes.image_to_boxes(thresh,
+                            #                                config='"--psm 7 --oem 3 -c tessedit_char_whitelist=" + 
+                            ##                                "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789 --tessdata-dir r" +
+                            #                                tes.pytesseract.tesseract_cmd)
+                            
+                            test_str_1 = tes.image_to_boxes(thresh,config='--psm 10 --oem 3 -c tessedit_char_whitelist=ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789 --tessdata-dir "/usr/share/tesseract-ocr/4.00/tessdata"') 
                             test_str_1 = test_str_1.split("\n")
                             strrr = "".join(b.split(" ")[0] for b in test_str_1)
                             strrr = "".join(char for char in strrr if char.isalnum())
@@ -3481,7 +3485,7 @@ class Smeargle(commands.Cog):
                                                     color=(0, 0, 0),
                                                     thickness=cv.FILLED)
                     
-                            contours, heirarchy = cv.findContours(thresh, 
+                            im3,contours, heirarchy = cv.findContours(thresh, 
                                                                   cv.RETR_EXTERNAL,
                                                                   cv.CHAIN_APPROX_SIMPLE)
                         
@@ -3501,7 +3505,7 @@ class Smeargle(commands.Cog):
                             test_str_2 = tes.image_to_string(thresh,
                                                              config="--psm 7 --oem 3 -c tessedit_char_whitelist=" +
                                                              "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789 --tessdata-dir " +
-                                                             r'"I:\Program Files (x86)\Tesseract-OCR\tessdata"')
+                                                             '"' + tesseract_dir + '"')
                             test_str_2 = test_str_2.split("\n")
                             test_str_2 = test_str_2[0]
                             strrr = "".join(char for char in test_str_2 if char.isalnum())
@@ -3518,10 +3522,10 @@ class Smeargle(commands.Cog):
                             cv.imwrite("Crop_TimeHatched" + str(rn+1) + ".png", imgTimeCrop)
                             timerem1 = tes.image_to_string(imgTimeCrop,
                                                            config="--psm 7 --oem 3 -c tessedit_char_whitelist=" +
-                                                                  r'0123456789: --tessdata-dir "I:\Program Files (x86)\Tesseract-OCR\tessdata"')
+                                                                  r'0123456789: --tessdata-dir "'+tesseract_dir +'"')
                             timerem2 = tes.image_to_string(imgTimeCrop,
                                                            config="--psm 12 --oem 3 -c tessedit_char_whitelist=" +
-                                                                  r'0123456789: --tessdata-dir "I:\Program Files (x86)\Tesseract-OCR\tessdata"')
+                                                                  r'0123456789: --tessdata-dir "'+tesseract_dir +'"')
 
                             timerem = "".join(e for e in timerem1 if (e.isdigit() or e == ":"))
                             print("on_message: timer read 1_" + str(rn+1) + ": " + timerem)
@@ -3664,7 +3668,7 @@ class Smeargle(commands.Cog):
                         contents2 = tes.image_to_string(imgGym,
                                                         config="--psm 6 --oem 3 -c tessedit_char_whitelist=" +
                                                                "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789 --tessdata-dir " +
-                                                               r'"I:\Program Files (x86)\Tesseract-OCR\tessdata"')
+                                                               '"'+tesseract_dir +'"')
                         print("on_message: gym name read: " + contents2)
                         gymname = " ".join(word.capitalize() for word in contents2.split())
 
@@ -3682,10 +3686,10 @@ class Smeargle(commands.Cog):
                             
                             timerem1 = tes.image_to_string(imgTimeCrop,
                                                            config="--psm 7 --oem 3 -c tessedit_char_whitelist=" +
-                                                                  r'0123456789: --tessdata-dir "I:\Program Files (x86)\Tesseract-OCR\tessdata"')
+                                                                  r'0123456789: --tessdata-dir "'+tesseract_dir +'"')
                             timerem2 = tes.image_to_string(imgTimeCrop,
                                                            config="--psm 12 --oem 3 -c tessedit_char_whitelist=" +
-                                                                  r'0123456789: --tessdata-dir "I:\Program Files (x86)\Tesseract-OCR\tessdata"')
+                                                                  r'0123456789: --tessdata-dir "'+tesseract_dir +'"')
                             cv.imwrite("Crop_TimeEgg" + str(rn+1) + ".png", imgTimeCrop)
                         
                             timerem = "".join(e for e in timerem1 if (e.isdigit() or e == ":"))
@@ -3726,7 +3730,7 @@ class Smeargle(commands.Cog):
                         contents2 = tes.image_to_string(imgGym,
                                                         config="--psm 6 --oem 3 -c tessedit_char_whitelist=" +
                                                                "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789 --tessdata-dir " +
-                                                               r'"I:\Program Files (x86)\Tesseract-OCR\tessdata"')
+                                                               r'"'+tesseract_dir +'"')
                         print("on_message: gym name read: " + contents2)
                         gymname = " ".join(word.capitalize() for word in contents2.split())
                     
