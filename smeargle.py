@@ -9,6 +9,7 @@ import aiohttp
 import ast
 import csv
 import cv2 as cv
+import copy
 import datetime as dt
 import enchant
 import imutils
@@ -18,25 +19,50 @@ import math
 import numpy as np
 import os
 import pytesseract as tes
+import random
 import re
 import shutil
+import sys
 
 from datetime import timedelta, datetime
 from difflib import SequenceMatcher
 from discord.utils import get
 from fuzzywuzzy import fuzz
+from geopy.geocoders import Nominatim
+from os import path
 
+with open(path.dirname(__file__)+"\\server_configs.json") as infile:
+    server_configs = json.load(infile)
+
+tesseractPath = server_configs["tesseractPath"]
+tessdataPath = server_configs["tessdataPath"]
+cogPath = server_configs["cogPath"]
+lucaId = server_configs["lucaId"]
+managerIds = server_configs["managerIds"]
+sightingChanId = server_configs["sightingChanId"]
+signupChanId = server_configs["signupChanId"]
+triviaChanId = server_configs["triviaChanId"]
+activeChanId = server_configs["activeChanId"]
+raidChanIds = server_configs["raidChanIds"]
+debugChanId = server_configs["debugChanId"]
+warehouseId = server_configs["warehouseId"]
+raidCategoryId = server_configs["raidCategoryId"]
+raidShinyName = server_configs["raidShinyName"]
+roleIds = server_configs["roleIds"]
+regionIds = server_configs["regionIds"]
+
+# channels where commands by everyone are potentially allowed
+allChanIds = raidChanIds.copy()
+allChanIds.extend([sightingChanId])
 #---------------------------------------------------------------------------------#
 #---------------------------------Local Settings----------------------------------#
 #---------------------------------------------------------------------------------#
-#DO NOT SPECIFY THE TESSERACT LOCATION THROUGH PYTESSERACT OR rPi CANT READ IT
-#tes.pytesseract.tesseract_cmd = "I:\Program Files (x86)\Tesseract-OCR\tesseract.exe"
-#tes.pytesseract.tesseract_cmd ="/usr/share/tesseract-ocr/4.00/tessdata"
-tesseract_dir="/usr/share/tesseract-ocr/4.00/tessdata"
-# path to the cogs
-cogPath = "//home//pi//LucaPollster//PurduePollster_Luca-main//cogs//CogManager//cogs//"
+
+tes.pytesseract.tesseract_cmd = tesseractPath
 # path to the config json files
-configPath = cogPath + "configs//"
+configPath = cogPath + "configs\\"
+# path to the screenshots files
+pngPath = cogPath + "pngs\\"
 # path to this python script
 smearglePath = cogPath + "smeargle.py"
 # path to the game master file
@@ -44,111 +70,6 @@ GMPath = configPath + "GAME_MASTER.json"
 # word dictionary
 wordDict = enchant.Dict("en_US") 
 
-#---------------------------------------------------------------------------------#
-#-------------------------------Channel Settings----------------------------------#
-#---------------------------------------------------------------------------------#
-
-# server id, this bot will only serve one server
-#serverId = 730448547014639646
-# user ids overrides
-lucaId = 345200594421547018
-# channel ids
-# raid-sightings channel id
-sightingChanId = 833521691371634726
-# raid-role-signups channel id
-signupChanId = 1033408042819145869
-# active-raids channel id
-activeChanId = 833521691371634727
-# all raid-channel ids
-raidChanIds = [
-    833521691618705442,833521691618705443,833521691618705444,833521691618705445,833521691618705446,833521691618705447,833521691865907240,833521691865907241,833521691865907242,833521691865907243,833521691865907244,833521691865907245,
-    833521691865907247,833521691865907248,833521691865907249,833521692235399168,833521692235399169,833521692235399170,833521692235399171,833521692235399172,833521692235399173,833521692235399174,833521692235399175,833521692235399176,  
-    833521692381937724,833521692381937725,833521692381937726,833521692381937727,833521692381937728,833521692381937729,833521692381937730,833521692381937731,833521692381937732,833521692381937733,833521692558884904,833521692558884905
-]
-# bot-debug channel id
-debugChanId = 833521691153006636
-# channels where commands by everyone are potentially allowed
-allChanIds = raidChanIds.copy()
-allChanIds.extend([sightingChanId])
-# category ids
-# warehouse category id
-warehouseId = 1034297217575567430
-# raid channels category id
-raidCategoryId = 833521691618705441
-# role ids
-# shiny role name
-raidShinyName = "PossShiny"
-# raid role ids
-roleIds = {
-    "RaidLevel5" : 833521690787971134,
-    "RaidElite" : 1035752073750401074,
-    "RaidMega" : 837465640343437352,
-    raidShinyName : 833521690759790612,
-    "Level5" : [1035743016004096050, 1035743064871944202,1035743096501174332,1035743141120188416,1035743169062654022],
-    "Elite" : [1035743621225386044, 1035743643887206430,1035743670982430720],
-    "Mega" : [1035746066752081961,1035746091892756531, 1035746116068716615],
-    "Level4" : [1035746907147993148],
-    "Level3" : [1035747048827404369,1035747075322826803,1035747111775502416,1035747175071760384,1035747204524154950],
-    "Level1" : [1035747531189141514,1035747565699870810,1035747592434360341,1035747657882292364,1035747683517861960],
-}
-tierNames = {
-    "SuperMega" : 6,
-    "Elite" : 6,
-    "Level5" : 5,
-    "Mega" : 4,
-    "Level4" : 4,
-    "Level3" : 3, 
-    "Level1" : 1,
-}
-tierNamesShort = ["Level1", "Level3", "Level4", "Mega", "Elite", "Level5"]
-inPersonTierNames = ["Level4", "Elite"]
-regionIds = {
-    "North" : {
-        "id" : 338883202775121920,
-        "parent" : "",
-    },
-    "Kent" : {
-        "id" : 338883317158117376,
-        "parent" : "",
-    },
-    "South" : {
-        "id" : 338883376264118272,
-        "parent" : "",
-    },
-    "Brown" : {
-        "id" : 375672297408954389,
-        "parent" : "North",
-    },
-    "Newport" : {
-        "id" : 338883421889626113,
-        "parent" : "",
-    },
-    "Uri" : {
-        "id" : 412451827364265994,
-        "parent" : "South",
-    },
-    "RWP" : {
-        "id" : 471298490631323659,
-        "parent" : "North",
-    },
-    "Westerly" : {
-        "id" : 471298539000168448,
-        "parent" : "South",
-    },
-    "Downtown" : {
-        "id" : 487338277100191744,
-        "parent" : "North",
-    },
-    "Covww" : {
-        "id" : 471299098474053633,
-        "parent" : "Kent",
-    },
-    "PCRIC" : {
-        "id" : 471307903471452170,
-        "parent" : "North",
-    }
-}
-        
 #---------------------------------------------------------------------------------#
 #----------------------------Raid Function Settings-------------------------------#
 #---------------------------------------------------------------------------------#
@@ -158,13 +79,21 @@ regionIds = {
 timeForm = "%m/%d/%Y %I:%M:%S %p"
 # used in the active raids embeds
 timeFormShorter = "%I:%M %p"
+# just dates
+timeFormDate = "%m/%d/%Y"
 # time constants
 # time zone of the bot
-timeZoneHours = -4 # hours
+timeZoneHours = -5 # hours
 # the bot will not listen to raid input for this many seconds after the last one
 raidCooldownSeconds = 2 # seconds
 # the bot will check the time on an active raid channel every this many seconds
 monitorCooldownSeconds = 180 # seconds
+# the bot will check the time on the trivia question every this many seconds
+triviaCooldownSeconds = 600 # seconds
+# the bot will wait this many seconds after sending a message in poll game
+roundSeconds = 20 # seconds
+# the bot will wait until this time, PM, to reveal answer
+roundHours = 9 # hours
 # active channels will be deactivated this many minutes after the raid end time
 deleteMinutes = 5 # minutes
 # when waiting for user input, timeout after this many seconds
@@ -184,7 +113,7 @@ backHours = -6 # hours
 accountEmoji = [b"1\xef\xb8\x8f\xe2\x83\xa3".decode("utf-8"), b"2\xef\xb8\x8f\xe2\x83\xa3".decode("utf-8"), b"3\xef\xb8\x8f\xe2\x83\xa3".decode("utf-8"),
                 b"4\xef\xb8\x8f\xe2\x83\xa3".decode("utf-8"), b"5\xef\xb8\x8f\xe2\x83\xa3".decode("utf-8"), b"6\xef\xb8\x8f\xe2\x83\xa3".decode("utf-8"),
                 b"7\xef\xb8\x8f\xe2\x83\xa3".decode("utf-8"), b"8\xef\xb8\x8f\xe2\x83\xa3".decode("utf-8"), b"9\xef\xb8\x8f\xe2\x83\xa3".decode("utf-8"),
-                b"\xf0\x9f\x94\x9f".decode("utf-8"), b"\xf0\x9f\x95\x9a".decode("utf-8")]
+                b"\xf0\x9f\x94\x9f".decode("utf-8"), b"\xf0\x9f\x8f\xa2".decode("utf-8"), b"\xf0\x9f\x8f\x9e\xef\xb8\x8f".decode("utf-8")]
 # frown face
 errorEmoji = b"\xe2\x98\xb9\xef\xb8\x8f".decode("utf-8")
 # thumbs up
@@ -192,15 +121,9 @@ okayEmoji = b"\xf0\x9f\x91\x8d".decode("utf-8")
 # red exclamation mark
 notifEmoji = b"\xe2\x9d\x97".decode("utf-8")
 # free raid pass
-inpersonEmojiName = "EX"
 inpersonEmojiString = b"\xf0\x9f\x99\x8b\xe2\x80\x8d\xe2\x99\x80\xef\xb8\x8f".decode("utf-8")
-inpersonEmojiId = 440549150111694859
-remoteEmojiName = "SphealTeam6"
 remoteEmojiString = b"\xf0\x9f\xa5\xb7".decode("utf-8")
-remoteEmojiId = 611289746093768842
-hostEmojiName = "RIPoGo"
 hostEmojiString = b"\xf0\x9f\xa7\x99\xe2\x80\x8d\xe2\x99\x82\xef\xb8\x8f".decode("utf-8")
-hostEmojiId = 440510352799694859
 # raid levels
 raidLevels = {
     "Level1" : {"raidTimer" : 45, "url" : r"https://www.serebii.net/pokemongo/items/normalegg.png"},
@@ -211,6 +134,17 @@ raidLevels = {
     "Mega" : {"raidTimer" : 45, "url" : r"https://www.serebii.net/pokemongo/items/megaegg.png", "role" : "RaidMega"},
     "SuperMega" : {"raidTimer" : 45, "url" : r"https://www.serebii.net/pokemongo/items/megaegg.png", "role" : "RaidMega"},
 }
+tierNames = {
+    "SuperMega" : 6,
+    "Elite" : 6,
+    "Level5" : 5,
+    "Mega" : 4,
+    "Level4" : 4,
+    "Level3" : 3, 
+    "Level1" : 1,
+}
+tierNamesShort = ["Level1", "Level3", "Level4", "Mega", "Elite", "Level5"]
+inPersonTierNames = ["Level4", "Elite"]
 # text settings
 # colors for embed
 defaultColor = 0x00ff00
@@ -239,6 +173,8 @@ confidenceRaw = 0.85
 confidenceRelative = 0.7
 confidenceLower = 0.6
 confidenceRelativeLower = 0.4
+# manager role name
+managerName = "Bot Manager"
 
 #---------------------------------------------------------------------------------#
 #-------------------------Pokemon Function Settings-------------------------------#
@@ -392,6 +328,50 @@ def cpFormula(pLvl:int, baseAtt:int, baseDef:int, baseSta:int,
                                    math.sqrt(baseDef+defIv) * 
                                    math.sqrt(baseSta+staIv) * 
                                   (CPM[pLvl]**2.0) / 10.0)))
+                                  
+# remove common emojis from a given string
+def remove_emojis(data):
+    emoj = re.compile("["
+        u"\U0001F600-\U0001F64F"  # emoticons
+        u"\U0001F300-\U0001F5FF"  # symbols & pictographs
+        u"\U0001F680-\U0001F6FF"  # transport & map symbols
+        u"\U0001F1E0-\U0001F1FF"  # flags (iOS)
+        u"\U00002500-\U00002BEF"  # chinese char
+        u"\U00002702-\U000027B0"
+        u"\U00002702-\U000027B0"
+        u"\U000024C2-\U0001F251"
+        u"\U0001f926-\U0001f937"
+        u"\U00010000-\U0010ffff"
+        u"\u2640-\u2642" 
+        u"\u2600-\u2B55"
+        u"\u200d"
+        u"\u23cf"
+        u"\u23e9"
+        u"\u231a"
+        u"\ufe0f"  # dingbats
+        u"\u3030"
+                      "]+", re.UNICODE)
+    return re.sub(emoj, '', data)
+
+# find the city name corresponding to a coordinate or google map link    
+def mapToName(*args):
+    if len(args) == 1:
+        googleLink = str(args[0])
+        loc = googleLink.find("=")
+        coordinates = googleLink[loc+1:]
+    elif len(args) == 2:
+        coordinates = str(float(args[0])) + "," + str(float(args[1]))
+     
+    geolocator = Nominatim(user_agent="geoapiExercises")
+    location = geolocator.reverse(coordinates)
+    address = location.raw['address']
+    if address.get('town', ''):
+        return address.get('town', '')
+    elif address.get('city', ''):
+        return address.get('city', '')
+    else:
+        return address.get('suburb', '')
+    
 #---------------------------------------------------------------------------------#
 #-----------------------------------The Bot---------------------------------------#
 #---------------------------------------------------------------------------------#    
@@ -416,10 +396,22 @@ class Smeargle(commands.Cog):
             self.trainerDict = json.load(infile)
         with open(configPath+"BossSchedule.json") as infile:
             self.bossSchedule = json.load(infile)
-        with open(configPath+"IDSettings.json") as infile:
-            self.IdSettings = json.load(infile)
         with open(configPath+"GymDictionary.json") as infile:
             self.gymDict = json.load(infile)
+        with open(configPath+"GameLog.json") as infile:
+            self.gameLog = json.load(infile)
+        self.tempMonitorId = 0
+        self.tempMonitorUsers = []
+        self.tempVoteId = 0
+        self.tempVoteUsers = []
+        self.tempTriviaId = 0
+        self.tempIsPoll = False
+        if "trivia" in self.gameLog:
+            for qDict in self.gameLog["trivia"]:
+                if "id" in qDict and not qDict["id"] == 0:
+                    self.tempTriviaId = qDict["id"]
+                    self.tempVoteUsers = qDict["votes"]
+                    break
         print("__init__: json files loaded")
         print("__init__: finished initialization")
             
@@ -467,7 +459,7 @@ class Smeargle(commands.Cog):
         # number of existing group embeds
         numGroup = len(self.chanDict[chanId]["embedTimes"])
         # fill new embed title and sign-up tables
-        embedNew = discord.Embed(title="Group " + str(numGroup+1), color=defaultColor)
+        embedNew = discord.Embed(title="Group " + str(numGroup+1) + " (Copy paste this entire message for host's code)", color=defaultColor)
         embedNew.add_field(name=groupHostText, value=groupNooneText, inline=True)
         embedNew.add_field(name=groupInpersonText, value=groupNooneText, inline=True)
         embedNew.add_field(name=groupRemoteText, value=groupNooneText, inline = True)
@@ -477,11 +469,8 @@ class Smeargle(commands.Cog):
         embedMsgTime = await checkChan.send(embed=embedNew)
         await embedMsgTime.pin()
         # add the emoji's for sign-ups
-        #emoji = await checkChan.guild.fetch_emoji(hostEmojiId)
         await embedMsgTime.add_reaction(hostEmojiString)
-        #emoji = await checkChan.guild.fetch_emoji(inpersonEmojiId)
         await embedMsgTime.add_reaction(inpersonEmojiString)
-        #emoji = await checkChan.guild.fetch_emoji(remoteEmojiId)
         await embedMsgTime.add_reaction(remoteEmojiString)
         print("createGroupEmbed: group embed {} for channel {} has been sent".format(str(numGroup+1), checkChan.name))
         # record this embed and initialize the sign-up lists in cache
@@ -500,7 +489,6 @@ class Smeargle(commands.Cog):
         embedMsgTime = await checkChan.send(embed=embedNew)
         await embedMsgTime.pin()
         # add the emoji's for sign-ups
-        #emoji = await checkChan.guild.fetch_emoji(inpersonEmojiId)
         await embedMsgTime.add_reaction(inpersonEmojiString)
         print("createGroupEmbed: group embed {} for channel {} has been sent".format(str(numGroup+1), checkChan.name))
         # record this embed and initialize the sign-up lists in cache
@@ -516,7 +504,14 @@ class Smeargle(commands.Cog):
                 self.chanDict[chanId]["status"] = "Prep"
                 print("createRaid: channel {} is available".format(checkChan.name))
                 # convert gym name to channel name
-                gymnameNew = gymname
+                if gymname in self.gymDict:
+                    gymnameNew = self.gymDict[gymname]["name"]
+                    gymnameFull = self.gymDict[gymname]["name"] + " ({})".format(mapToName(self.gymDict[gymname]["map"]))
+                    gymnameNew = remove_emojis(gymnameNew)
+                    gymnameNew = gymnameNew.strip()
+                else:
+                    gymnameNew = gymname
+                    gymnameFull = gymnameNew
                 gymnameNew = gymnameNew.replace(" ", "-")
                 gymnameNew = "".join(char for char in gymnameNew if (char.isalnum() or char == "-"))
                 # convert Pokemon/raid name to channel name
@@ -557,7 +552,6 @@ class Smeargle(commands.Cog):
                             print("createRaid: raid timer overriden as {}".format(str(useRaidTimer)))
                 # purge channel
                 await checkChan.purge(limit=100)
-                await checkChan.purge(limit=100)
                 print("createRaid: channel has been purgued twice")
                 # retrieve embed info
                 if raidType == 1:
@@ -586,8 +580,8 @@ class Smeargle(commands.Cog):
                     else:
                         embedColor = cautionColor
                 # create embeds
-                embed1 = discord.Embed(title=raidName + " raid at " + gymname, color=embedColor)
-                embed2 = discord.Embed(title=raidName + " raid at " + gymname, color=embedColor)
+                embed1 = discord.Embed(title=raidName + " raid at " + gymnameFull, color=embedColor)
+                embed2 = discord.Embed(title=raidName + " raid at " + gymnameFull, color=embedColor)
                 # thumbnail
                 embed1.set_thumbnail(url = imgUrl)
                 embed2.set_thumbnail(url = imgUrl)
@@ -608,27 +602,22 @@ class Smeargle(commands.Cog):
                 embed2.add_field(name=raidCPText, value=cpText, inline=True)
                 embed2.add_field(name=instructionText, 
                                  value="React to one of the following groups.\n" +
-                                       #"<:{}:{}> for in-person\n".format(inpersonEmojiName, str(inpersonEmojiId)) +
-                                       #"<:{}:{}> for remote\n".format(remoteEmojiName, str(remoteEmojiId)) +
-                                       #"<:{}:{}> if you can host others\n".format(hostEmojiName, str(hostEmojiId)) +
-                                       #hostEmojiString + "if you can host others\n" +
-                                       #inpersonEmojiString + "for in-person\n" +
-                                       #remoteEmojiString + "for remote\n" +
-                                       #accountEmoji[0] + accountEmoji[1] + "..." + accountEmoji[-1] + " to indicate how many OTHERS are in your group\n" +
                                        "Use %group to create a new group.\n" +
                                        "Use %buzz to send messages to a group.\n" +
                                        "Use %close to close a group.\n" + 
                                        "Use %update, %gym, %extend to adjust raid Pokemon, gym, and time.", inline=True)
-                gymnameShort = gymname.replace(" ", "")
-                if gymnameShort in self.gymDict:
-                    embed2.add_field(name=mapText, value=self.gymDict[gymnameShort]["map"], inline=True)
+                if gymname in self.gymDict:
+                    embed2.add_field(name=mapText, value=self.gymDict[gymname]["map"], inline=True)
                 else:
                     embed2.add_field(name=mapText, value="This is not a recorded gym.", inline=True)
                 # both embeds need @ roles
                 roles = []
-                if gymnameShort in self.gymDict:
-                    if self.gymDict[gymnameShort]["role2"]:
-                        roleName = self.gymDict[gymnameShort]["role1"]
+                if gymname in self.gymDict:
+                    #roleName = self.gymDict[gymnameShort]["role1"]
+                    #role = get(checkChan.guild.roles, name=roleName)
+                    #roles.append(role)
+                    if self.gymDict[gymname]["role2"]:
+                        roleName = self.gymDict[gymname]["role1"]
                         role = get(checkChan.guild.roles, name=roleName)
                         roles.append(role)
                 if raidType == 1:
@@ -650,6 +639,7 @@ class Smeargle(commands.Cog):
                         role = get(checkChan.guild.roles, name=roleName)
                         roles.append(role)        
                 roleContent = " ".join(role.mention for role in roles)
+                roleContent += " at gym {}".format(gymnameFull)
                 # embed2 allows mention
                 embedMsg2 = await checkChan.send(content=roleContent, embed=embed2, allowed_mentions=discord.AllowedMentions(roles=True))
                 await embedMsg2.pin()
@@ -769,8 +759,8 @@ class Smeargle(commands.Cog):
         else:
             outputString = author.mention + " Please choose a name from the following list. Type a number:\n"
             for index, name in enumerate(nameList):
-                outputString += "{}.{} ".format(str(index+1), name)
-            outputString += "{}. None of the above".format(str(len(nameList)+1))
+                outputString += "{}.{}\n".format(str(index+1), name)
+            outputString += "{}.None of the above".format(str(len(nameList)+1))
             await placeToSend.send(outputString)
             def check1(message):
                 return message.channel == placeToSend and message.author == author
@@ -817,7 +807,8 @@ class Smeargle(commands.Cog):
     # no special characters in the nameDict entries
     async def handlePlaceNames(self, placeToSend, nameInput:str, nameDict:dict, noCtx:bool, author):
         # keep only letters/numbers
-        nameInput = "".join(char for char in nameInput if char.isalnum())
+        nameInput = nameInput.replace(" ", "")
+        print("handlePlaceNames: name input: " + nameInput)
         # find all dict keys that look similar
         nameList = []
         for name in nameDict:
@@ -828,7 +819,8 @@ class Smeargle(commands.Cog):
                     nameList.append(name)
             elif name.lower()[:len(nameInput)] == nameInput.lower():
                 nameList.append(name)
-            elif fuzz.ratio(nameInput.lower(), name.lower()) > 85:
+            elif fuzz.partial_ratio(nameInput.lower(), name.lower()) == 100 or \
+                fuzz.ratio(nameInput.lower(), name.lower()) > 85:
                 nameList.append(name)
         # ask the user to choose the name
         if len(nameList) == 0:
@@ -838,8 +830,8 @@ class Smeargle(commands.Cog):
         else:
             outputString = author.mention + " Please choose a gym from the following list. Type a number:\n"
             for index, name in enumerate(nameList):
-                outputString += "{}.{} ({}) ".format(str(index+1), name, nameDict[name]["role1"])
-            outputString += "{}. None of the above".format(str(len(nameList)+1))
+                outputString += "{}.{} ({})\n".format(str(index+1), nameDict[name]["name"], nameDict[name]["town"])
+            outputString += "{}.None of the above".format(str(len(nameList)+1))
             await placeToSend.send(outputString)
             def check1(message):
                 return message.channel == placeToSend and message.author == author
@@ -1097,7 +1089,6 @@ class Smeargle(commands.Cog):
                             signupDict[user.id] = {}
                         signupDict[user.id]["num"] = numAdd
             # it's a reaction for in-person
-            #elif reaction.emoji.name == inpersonEmojiName:
                 elif reaction.emoji == inpersonEmojiString:
                     users = [user async for user in reaction.users()]
                     for user in users:
@@ -1107,7 +1098,6 @@ class Smeargle(commands.Cog):
                             signupDict[user.id] = {}
                         signupDict[user.id]["in-person"] = 1
             # it's a reaction for remote
-            #elif reaction.emoji.name == remoteEmojiName:
                 elif reaction.emoji == remoteEmojiString:
                     users = [user async for user in reaction.users()]
                     for user in users:
@@ -1117,7 +1107,6 @@ class Smeargle(commands.Cog):
                             signupDict[user.id] = {}
                         signupDict[user.id]["remote"] = 1
             # it's a reaction for host
-            #elif reaction.emoji.name == hostEmojiName:
                 elif reaction.emoji == hostEmojiString:
                     users = [user async for user in reaction.users()]
                     for user in users:
@@ -1134,27 +1123,35 @@ class Smeargle(commands.Cog):
         inpersonEntries = []
         remoteEntries = []
         hostId = 0
-        hostCode = "no friend code set, please use %code xxxx xxxx xxxx to input"
+        hostCode = 'no friend code set, please use "%code xxxx xxxx xxxx" to input'
         for userId in signupDict:
-            signupEntry = "<@{}> ".format(str(userId))
+            #signupEntry = "<@{}> ".format(str(userId))
+            user = get(messageToUpdate.guild.members, id=userId)
+            signupEntry = user.display_name
             if "host" in signupDict[userId] and signupDict[userId]["host"]:
                 hostId = userId
                 if str(userId) in self.trainerDict and "code" in self.trainerDict[str(userId)] and self.trainerDict[str(userId)]["code"]:
                     hostCode = self.trainerDict[str(userId)]["code"]
                 else:
-                    hostCode = "no friend code set, please use %code xxxx xxxx xxxx to input"
+                    hostCode = 'no friend code set, please use "%code xxxx xxxx xxxx" to input'
             # if signed up with in-person, it will override remote
             if "in-person" in signupDict[userId] and signupDict[userId]["in-person"]:
                 if "num" in signupDict[userId] and signupDict[userId]["num"]:
                     signupEntry += "(+" + str(signupDict[userId]["num"]) + " trainers)"
                 inpersonEntries.append(signupEntry)
             elif "remote" in signupDict[userId] and signupDict[userId]["remote"]:
+                if str(userId) in self.trainerDict and "name" in self.trainerDict[str(userId)] and self.trainerDict[str(userId)]["name"]:
+                    signupEntry += " ({})".format(self.trainerDict[str(userId)]["name"])
+                else:
+                    signupEntry += ' (no trainer name set, please use "%name xxxxxx" to input)'
                 if "num" in signupDict[userId] and signupDict[userId]["num"]:
                     signupEntry += "(+" + str(signupDict[userId]["num"]) + " trainers)"
                 remoteEntries.append(signupEntry)
         # host text
         if hostId:
-            hostText = "<@{}> : {}".format(str(hostId), hostCode)
+            #hostText = "<@{}> : {}".format(str(hostId), hostCode)
+            user = get(messageToUpdate.guild.members, id=hostId)
+            hostText = "{} : {}".format(user.display_name, hostCode)
         else:
             hostText = groupNooneText
         # in-person text
@@ -1219,11 +1216,11 @@ class Smeargle(commands.Cog):
         else:
             print("signupUpdate: nothing has changed")
             
-    # use IdSettings to overwrite the current config file 
-    def writeIds(self):
-        with open(configPath+"IDSettings.json", "w") as outfile:
-            json.dump(self.IdSettings, outfile, indent=4)
-        print("writeIds: json file overwritten")
+    # use gameLog to overwrite the current config file
+    def writeGames(self):
+        with open(configPath+"GameLog.json", "w") as outfile:
+            json.dump(self.gameLog, outfile, indent=4)
+        print("writeGames: json file overwritten")
     
     # use gymDict to overwrite the current config file
     def writeGyms(self):
@@ -1260,7 +1257,7 @@ class Smeargle(commands.Cog):
     @commands.command(pass_context=True)
     async def clearc(self, ctx, *args):
         # can only be used by raid managers in raid channels
-        if not ctx.message.author.id in self.IdSettings["managerIds"] or not ctx.message.channel.id in raidChanIds:
+        if not ctx.message.author.id in managerIds or not ctx.message.channel.id in raidChanIds:
             return
             
         if not self.chanDict:
@@ -1287,7 +1284,7 @@ class Smeargle(commands.Cog):
     @commands.command(pass_context=True)
     async def rip(self, ctx, *args):
         # can only be used by raid managers in raid channels
-        if not ctx.message.author.id in self.IdSettings["managerIds"] or not ctx.message.channel.id in raidChanIds:
+        if not ctx.message.author.id in managerIds or not ctx.message.channel.id in raidChanIds:
             return
             
         if not self.chanDict:
@@ -1296,21 +1293,24 @@ class Smeargle(commands.Cog):
             await self.iniChanDict() 
             
         if datetime.utcnow() < self.chanDict[ctx.message.channel.id]["lastCmd"] + timedelta(seconds=raidCooldownSeconds):
-            await ctx.message.channel.send(cooldownText)
+            await ctx.send(cooldownText)
             return
         self.chanDict[ctx.message.channel.id]["lastCmd"] = datetime.utcnow()
         
         chanId = ctx.message.channel.id
         checkChan = get(self.bot.get_all_channels(), id=chanId)
         if checkChan.category.id == raidCategoryId:
+            # obtain the current end time, then add the timer
             activeMsg = await ctx.message.channel.fetch_message(self.chanDict[chanId]["embed2"])
             msgEmbed = activeMsg.embeds[0]
             embed_dict = msgEmbed.to_dict()
-            timeStr = "01/01/2000 01:00:00 AM"
-            endTime = datetime.strptime(timeStr, timeForm)
+            timeStr = ""
             for field in embed_dict["fields"]:
                 if field["name"] == activeEndText:
-                    field["value"] = timeStr
+                    timeStr = field["value"]
+                    endTime = datetime.strptime(timeStr, timeForm)
+                    endTime += timedelta(minutes=-2000)
+                    field["value"] = endTime.strftime(timeForm)
                     break
             # update top embed
             newMsgEmbed = discord.Embed.from_dict(embed_dict)
@@ -1318,12 +1318,13 @@ class Smeargle(commands.Cog):
             print("rip: edited embed2's end time")
             # update active embed
             activeChan = get(self.bot.get_all_channels(), id=activeChanId)
-            activeMsg = await activeChan.fetch_message(self.chanDict[ctx.message.channel.id]["embed1"])
+            activeMsg = await activeChan.fetch_message(self.chanDict[chanId]["embed1"])
             msgEmbed = activeMsg.embeds[0]
             embed_dict = msgEmbed.to_dict()
             for field in embed_dict["fields"]:
                 if field["name"] == activeEndText:
-                    field["value"] = endTime.strftime(timeFormShorter)
+                    timeStrShort = endTime.strftime(timeFormShorter)
+                    field["value"] = timeStrShort
                     break
             newMsgEmbed = discord.Embed.from_dict(embed_dict)
             await activeMsg.edit(embed=newMsgEmbed)
@@ -1340,7 +1341,7 @@ class Smeargle(commands.Cog):
     @commands.command(pass_context=True)
     async def ripall(self, ctx, *args):
         # can only be used by raid managers in debug channel
-        if not ctx.message.author.id in self.IdSettings["managerIds"] or not ctx.message.channel.id == debugChanId:
+        if not ctx.message.author.id in managerIds or not ctx.message.channel.id == debugChanId:
             return
             
         warehouse = get(self.bot.get_all_channels(), id=warehouseId)
@@ -1356,6 +1357,7 @@ class Smeargle(commands.Cog):
         activeChan = get(self.bot.get_all_channels(), id=activeChanId)
         await activeChan.purge(limit=100)
         print("iniChanDict: channel {} has been purged".format(activeChan.name))
+        await activeChan.send("This channel will be updated with any ongoing raids reported in <#{}>".format(str(sightingChanId)))
         
         for chanId in raidChanIds:
             self.resetChanDict(chanId)
@@ -1371,7 +1373,7 @@ class Smeargle(commands.Cog):
                       pass_context=True)
     async def release(self, ctx, pokemonNameInput:str):
         # can only be used by raid managers in debug channel
-        if not ctx.message.author.id in self.IdSettings["managerIds"] or not ctx.message.channel.id == debugChanId:
+        if not ctx.message.author.id in managerIds or not ctx.message.channel.id == debugChanId:
             return
             
         try:
@@ -1406,7 +1408,7 @@ class Smeargle(commands.Cog):
                       pass_context=True)
     async def rlevel(self, ctx, pokemonNameInput:str, rLevelInput:str):
         # can only be used by raid managers in debug channel
-        if not ctx.message.author.id in self.IdSettings["managerIds"] or not ctx.message.channel.id == debugChanId:
+        if not ctx.message.author.id in managerIds or not ctx.message.channel.id == debugChanId:
             return
             
         try:
@@ -1446,7 +1448,7 @@ class Smeargle(commands.Cog):
                       pass_context=True)
     async def srelease(self, ctx, pokemonNameInput:str):
         # can only be used by raid managers in debug channel
-        if not ctx.message.author.id in self.IdSettings["managerIds"] or not ctx.message.channel.id == debugChanId:
+        if not ctx.message.author.id in managerIds or not ctx.message.channel.id == debugChanId:
             return
             
         try:
@@ -1481,7 +1483,7 @@ class Smeargle(commands.Cog):
                       pass_context=True)
     async def stats(self, ctx, pokemonNameInput:str):
         # can only be used by raid managers in debug channel
-        if not ctx.message.author.id in self.IdSettings["managerIds"] or not ctx.message.channel.id == debugChanId:
+        if not ctx.message.author.id in managerIds or not ctx.message.channel.id == debugChanId:
             return     
         
         try:
@@ -1526,14 +1528,14 @@ class Smeargle(commands.Cog):
         
     # go through the current boss schedule and update the signup roles/messages if necessary
     @commands.command(pass_context=True)
-    async def updateBosses(self, ctx):
+    async def updateboss(self, ctx):
         # can only be used by raid managers in debug channel
-        if not ctx.message.author.id in self.IdSettings["managerIds"] or not ctx.message.channel.id == debugChanId:
+        if not ctx.message.author.id in managerIds or not ctx.message.channel.id == debugChanId:
             return
             
         if not self.chanDict:
             await ctx.send(cacheText)
-            print("updateBosses: no cache, rebuilding...")
+            print("updateboss: no cache, rebuilding...")
             await self.iniChanDict()
             
         currentTime = datetime.utcnow() + timedelta(hours=timeZoneHours)
@@ -1568,12 +1570,12 @@ class Smeargle(commands.Cog):
                     newSchedules.append(schedule.copy())
                         
         if latestDefaultSchedule >= 0:
-            print("updateBosses: new default schedule found")
+            print("updateboss: new default schedule found")
             self.bossSchedule["last"] = self.bossSchedule["current"].copy()
             self.bossSchedule["current"] = self.bossSchedule["schedules"][latestDefaultSchedule].copy()
         
         if latestEventSchedule >= 0:
-            print("updateBosses: new event schedule found")
+            print("updateboss: new event schedule found")
         
         self.bossSchedule["schedules"] = newSchedules
         self.writeSchedules()
@@ -1630,19 +1632,21 @@ class Smeargle(commands.Cog):
         self.overwriteJson()
         
         # update sign-up messages        
-        singupChan = get(self.bot.get_all_channels(), id=signupChanId)
+        signupChan = get(self.bot.get_all_channels(), id=signupChanId)
+        addNames = []
+        removeNames = []
         for tierName in tierNamesShort:
             signupText = ""
             pIndex = 0
             for msgId in self.roleDict:
                 # find the tier in SignupMsgs.json
                 if self.roleDict[msgId]["type"] == tierName:
-                    activeMsg = await singupChan.fetch_message(int(msgId))
+                    activeMsg = await signupChan.fetch_message(int(msgId))
                     # check if there are enough roles assigned to this tier
                     numRoles = len(self.roleDict[msgId]["roles"])
                     numPokemon = len(pokemonToInclude[tierName])
                     if numPokemon > numRoles:
-                        print("updateBosses: not all scheduled Pokemon in {} can fit into the roles".format(tierName))
+                        print("updateboss: not all scheduled Pokemon in {} can fit into the roles".format(tierName))
                     for index in range(numRoles):
                         # if the old role still exists in the new list, skip
                         oldRoleName = self.roleDict[msgId]["roles"][index]
@@ -1664,26 +1668,32 @@ class Smeargle(commands.Cog):
                                 signupText += accountEmoji[index] + " " + oldPokemonName + "\n"
                                 continue
                             signupText += accountEmoji[index] + " " + pokemonToInclude[tierName][pIndex] + "\n"
+                            if oldPokemonName in self.pokemonStats:
+                                removeNames.append(oldPokemonName)
+                            addNames.append(pokemonToInclude[tierName][pIndex])
                         else:
+                            if oldPokemonName in self.pokemonStats:
+                                removeNames.append(oldPokemonName)
                             newRoleName = "Raid" + tierName + "P" + str(index+1)
                         # if a new role will be put in here, remove old role
                         if not oldRoleName == newRoleName:
                             role = get(guild.roles, name=oldRoleName)
                             if role:
-                                # need to remove the old role from everyone with it
-                                # also need to remove all non-bot reactions for the old role
-                                for member in role.members:
-                                    print("updateBosses: removing role {} from member {}".format(role.name, member.name))
-                                    await member.remove_roles(role)
-                                    for reaction in activeMsg.reactions:
-                                        if isinstance(reaction.emoji, str):
-                                            if reaction.emoji in accountEmoji:
-                                                if accountEmoji.index(reaction.emoji) == index:
-                                                    await reaction.remove(member)
+                                if oldPokemonName in self.pokemonStats:
+                                    # need to remove the old role from everyone with it
+                                    # also need to remove all non-bot reactions for the old role
+                                    for member in role.members:
+                                        print("updateboss: removing role {} from member {}".format(role.name, member.name))
+                                        await member.remove_roles(role)
+                                        for reaction in activeMsg.reactions:
+                                            if isinstance(reaction.emoji, str):
+                                                if reaction.emoji in accountEmoji:
+                                                    if accountEmoji.index(reaction.emoji) == index:
+                                                        await reaction.remove(member)
                                 # apply the new role name
                                 await role.edit(name=newRoleName)
                             self.roleDict[msgId]["roles"][index] = newRoleName
-                            print("updateBosses: role {} has been renamed to {}".format(oldRoleName, newRoleName))
+                            print("updateboss: role {} has been renamed to {}".format(oldRoleName, newRoleName))
                     # change the corresponding embed
                     msgEmbed = activeMsg.embeds[0]
                     embed_dict = msgEmbed.to_dict()
@@ -1698,18 +1708,23 @@ class Smeargle(commands.Cog):
                     break
         # overwrite the SignupMsg.json
         self.writeSignupMsg()
+        if len(removeNames) > 0 or len(addNames) > 0:
+            await signupChan.purge(limit=1)
+            timeNow = datetime.utcnow() + timedelta(hours=timeZoneHours)
+            dateNowStr = timeNow.strftime(timeFormDate)
+            await signupChan.send("Last boss role update: {}\nPokemon removed: {}\nPokemon added: {}".format(dateNowStr, ", ".join(name for name in removeNames), ", ".join(name for name in addNames)))
         await ctx.send(okayEmoji + " Current raid roles updated. Please double check if everything is correct.")        
-        return                  
+        return            
             
 #---------------------------------------------------------------------------------#
 #----------------------------commands for everyone--------------------------------#
 #---------------------------------------------------------------------------------#    
 
     # add a gym
-    @commands.command(name="addgym",
-                      description="E.g., %addgym Downtown 41.82551353486267, -71.41213789341057 Random Gym Name",
+    @commands.command(name="add",
+                      description="E.g., %add Downtown 41.82551353486267, -71.41213789341057 Random Gym Name",
                       pass_context=True)
-    async def addgym(self, ctx, roleName:str, lati:str, longi:str, *args):
+    async def add(self, ctx, roleName:str, lati:str, longi:str, *args):
         if not ctx.guild:
             return
         if not ctx.message.channel.id in allChanIds and not ctx.message.channel.id == debugChanId:
@@ -1717,7 +1732,7 @@ class Smeargle(commands.Cog):
         
         if not self.chanDict:
             await ctx.send(cacheText)
-            print("addgym: no cache, rebuilding...")
+            print("add: no cache, rebuilding...")
             await self.iniChanDict()
          
         if len(args) < 1:
@@ -1749,9 +1764,11 @@ class Smeargle(commands.Cog):
         
         gymname = " ".join(word for word in args)
         gymnameShort = "".join(word for word in args)
+        gymnameShort = gymnameShort.replace(" ", "")
+        gymnameShort = remove_emojis(gymnameShort)
         
         if gymnameShort in self.gymDict:
-            await ctx.send(errorEmoji + "Gym {} already exists.".format(gymname))
+            await ctx.send(errorEmoji + " Gym {} already exists.".format(gymname))
             return
         
         outstring = ' Creating gym "{}" in region "{}". Here is the Google Maps link: {}\nType "Y" to continue, "N" to cancel'.format(gymname, roleName, googleLink)
@@ -1777,12 +1794,33 @@ class Smeargle(commands.Cog):
             else:
                 self.gymDict[gymnameShort]["role2"] = ""
             self.gymDict[gymnameShort]["map"] = googleLink
+            self.gymDict[gymnameShort]["town"] = mapToName(googleLink)
             await ctx.send(okayEmoji + ' Gym "{}" has been created.'.format(gymname))
             self.writeGyms()
             return
         else:
             await ctx.send(errorEmoji + ' Failed to understand the answer "{}".'.format(msg.content))
 
+        return
+        
+    # display friend code
+    @commands.command(name="addme",
+                      description="E.g., %addme",
+                      pass_context=True)
+    async def addme(self, ctx):
+        if not ctx.guild:
+            return
+        
+        if not self.chanDict:
+            await ctx.send(cacheText)
+            print("addme: no cache, rebuilding...")
+            await self.iniChanDict()
+        
+        if str(ctx.message.author.id) in self.trainerDict and "code" in self.trainerDict[str(ctx.message.author.id)] and self.trainerDict[str(ctx.message.author.id)]["code"]:
+            await ctx.send(self.trainerDict[str(ctx.message.author.id)]["code"])
+        else:
+            await ctx.send(errorEmoji + ' No friend code set. Use "%code xxxx xxxx xxxx" to set your code.')
+        
         return
     
     # ping a group time
@@ -1804,7 +1842,7 @@ class Smeargle(commands.Cog):
             await self.iniChanDict()
             
         if datetime.utcnow() < self.chanDict[ctx.message.channel.id]["lastCmd"] + timedelta(seconds=raidCooldownSeconds):
-            await ctx.message.channel.send(cooldownText)
+            await ctx.send(cooldownText)
             return
         self.chanDict[ctx.message.channel.id]["lastCmd"] = datetime.utcnow()
         
@@ -1835,31 +1873,12 @@ class Smeargle(commands.Cog):
         checkChan = get(self.bot.get_all_channels(), id=ctx.message.channel.id)    
         messageToRead = await checkChan.fetch_message(self.chanDict[ctx.message.channel.id]["embedTimes"][groupNum])
         # find all the users to @
-        msgEmbed = messageToRead.embeds[0]
-        embed_dict = msgEmbed.to_dict()
-        all_text = ""
-        for field in embed_dict["fields"]:
-            if field["name"] == groupInpersonText:
-                if not field["value"] == groupNooneText:
-                    inpersonText = field["value"]
-                    inpersonText = inpersonText.split("\n")
-                    for text in inpersonText:
-                        if not str(ctx.message.author.id) in text:
-                            all_text += text.split(" ")[0]
-            if field["name"] == groupRemoteText:
-                if not field["value"] == groupNooneText:
-                    remoteText = field["value"]
-                    remoteText = remoteText.split("\n")
-                    for text in remoteText:
-                        if not str(ctx.message.author.id) in text:
-                            all_text += text.split(" ")[0]
-            elif field["name"] == groupHostText:
-                if not field["value"] == groupNooneText:
-                    hostText = field["value"]
-                    hostText = hostText.split("\n")
-                    for text in hostText:
-                        if not str(ctx.message.author.id) in text:
-                            all_text += text.split(" ")[0]
+        signupDict = self.chanDict[ctx.message.channel.id]["signupLists"][messageToRead.id]
+        buzzIds = []
+        for userId in signupDict:
+            if (not userId in buzzIds) and (not userId == ctx.message.author.id):
+                buzzIds.append("<@{}>".format(str(userId)))
+        all_text = "".join(buzzId for buzzId in buzzIds)
         # send the text
         if all_text:
             if pingText:
@@ -1890,7 +1909,7 @@ class Smeargle(commands.Cog):
             await self.iniChanDict()
             
         if datetime.utcnow() < self.chanDict[ctx.message.channel.id]["lastCmd"] + timedelta(seconds=raidCooldownSeconds):
-            await ctx.message.channel.send(cooldownText)
+            await ctx.send(cooldownText)
             return
         self.chanDict[ctx.message.channel.id]["lastCmd"] = datetime.utcnow()
         
@@ -1909,6 +1928,7 @@ class Smeargle(commands.Cog):
                     groupNum = self.chanDict[chanId]["embedTimes"].index(messageId)
                     self.chanDict[chanId]["embedTimes"] = self.chanDict[chanId]["embedTimes"][:groupNum] + [0] + self.chanDict[chanId]["embedTimes"][groupNum+1:]
                     print("close: message id set to 0 in embedTimes")
+                    self.chanDict[chanId]["signupLists"][messageId] = {}
                     # log this activity here
                     outString = "At " + str(datetime.utcnow() + timedelta(hours=timeZoneHours)) + ", user " + ctx.message.author.name + " closed a raid group.\n"
                     with open(configPath + "BotLog.txt", "a", newline="\n") as outfile:
@@ -1928,30 +1948,71 @@ class Smeargle(commands.Cog):
                       description="E.g., %code 1234 5678 9999.",
                       pass_context=True)
     async def code(self, ctx, *args):
-        if ctx.guild and not ctx.message.channel.id in allChanIds:
+        if ctx.guild and not ctx.message.channel.id in allChanIds and not ctx.message.channel.id == debugChanId:
             return
         # could be numbers separated by spaces
         msg = " ".join(arg for arg in args)
+        stringCode = msg.strip().replace(" ", "")
         try:
-            trainerCode = int(msg.strip().replace(" ", ""))
+            if len(stringCode) == 12:
+                trainerCode = int(stringCode)
+            else:
+                await ctx.send(errorEmoji + ' The code "{}" needs to have exactly 12 digits. Please use %code command to try again.'.format(stringCode))
+                return
         except:
             await ctx.send(errorEmoji + ' Failed to convert the code "{}" to numbers. Please use %code command to try again.'.format(msg))
             return
-        # process the code and record it    
-        stringCode = str(trainerCode)
-        if not len(stringCode) == 12:
-            await ctx.send(errorEmoji + ' The code "{}" needs to have exactly 12 digits. Please use %code command to try again.'.format(stringCode))
-            return
-        else:
-            newCode = stringCode[0:4] + " " + stringCode[4:8] + " " + stringCode[8:12]
-            if not str(ctx.message.author.id) in self.trainerDict:
-                self.trainerDict[str(ctx.message.author.id)] = {}
-            self.trainerDict[str(ctx.message.author.id)]["code"] = newCode
-            await ctx.send(okayEmoji + " Your trainer code has been set to: " + stringCode)
-            self.writeTrainerProfiles()
-            return
+        # process the code and record it
+        newCode = stringCode[0:4] + " " + stringCode[4:8] + " " + stringCode[8:12]
+        if not str(ctx.message.author.id) in self.trainerDict:
+            self.trainerDict[str(ctx.message.author.id)] = {}
+        self.trainerDict[str(ctx.message.author.id)]["code"] = newCode
+        await ctx.send(okayEmoji + " Your trainer code has been set to: " + stringCode)
+        self.writeTrainerProfiles()
             
         return
+        
+    #edit the name of a gym
+    @commands.command(name="edit",
+                      description="E.g., %edit Brown Art.",
+                      pass_context=True)
+    async def edit(self, ctx, *args):
+        if not ctx.guild:
+            return
+        
+        if not self.chanDict:
+            await ctx.send(cacheText)
+            print("edit: no cache, rebuilding...")
+            await self.iniChanDict()
+         
+        if len(args) < 1:
+            await ctx.send(errorEmoji + " There is no gym name provided.")
+            return
+        
+        gymname = " ".join(word for word in args)
+        
+        gymnameFound = await self.handlePlaceNames(ctx, gymname, self.gymDict, False, ctx.message.author)
+        
+        if gymnameFound:
+            await ctx.send(ctx.message.author.mention + ' Old gym name: {}\nEnter a new name or type "N" to cancel:'.format(self.gymDict[gymnameFound]["name"]))
+            def check(message):
+                return message.channel == ctx.message.channel and message.author == ctx.message.author
+            try:
+                msg = await self.bot.wait_for("message", check=check)
+            except:
+                await ctx.send(errorEmoji + " Timeout.")
+                return
+            if msg.content.strip().upper() == "N":
+                await ctx.send(notifEmoji + " Gym name edit cancelled.")
+            else:
+                self.gymDict[gymnameFound]["name"] = msg.content.strip()
+                await ctx.send(okayEmoji + " Gym name has been changed to {}.".format(msg.content.strip()))
+        else:
+            await ctx.send(errorEmoji + " Gym {} is not recorded.".format(gymname))
+            
+        self.writeGyms()
+            
+        return    
 
     #extend the time of the raid channel
     @commands.command(name="extend",
@@ -1972,7 +2033,7 @@ class Smeargle(commands.Cog):
             await self.iniChanDict()
             
         if datetime.utcnow() < self.chanDict[ctx.message.channel.id]["lastCmd"] + timedelta(seconds=raidCooldownSeconds):
-            await ctx.message.channel.send(cooldownText)
+            await ctx.send(cooldownText)
             return
         self.chanDict[ctx.message.channel.id]["lastCmd"] = datetime.utcnow()
         # obtain the current end time, then add the timer
@@ -2009,6 +2070,31 @@ class Smeargle(commands.Cog):
         
         return
         
+    # input or update trainer name
+    @commands.command(name="find",
+                      description="E.g., %find LucaLucaBea.",
+                      pass_context=True)
+    async def find(self, ctx, *args):
+        if ctx.guild and not ctx.message.channel.id in allChanIds and not ctx.message.channel.id == debugChanId:
+            return
+        # could be numbers separated by spaces
+        msg = " ".join(arg for arg in args)
+        stringName = msg.strip()
+        # find it
+        for userId in self.trainerDict:
+            if "name" in self.trainerDict[userId] and self.trainerDict[userId]["name"]:
+                if self.trainerDict[userId]["name"] == stringName:
+                    await ctx.send(okayEmoji + " This might be who you are looking for: <@{}>".format(userId))
+                    return
+        for userId in self.trainerDict:
+            if "name" in self.trainerDict[userId] and self.trainerDict[userId]["name"]:
+                if self.trainerDict[userId]["name"].lower() == stringName.lower():
+                    await ctx.send(okayEmoji + " This might be who you are looking for: <@{}>".format(userId))
+                    return
+        
+        await ctx.send(errorEmoji + " They haven't recorded their trainer name.")    
+        return
+        
     # add another raid group to an active raid channel
     @commands.command(name="group",
                       description="E.g., %group.",
@@ -2028,7 +2114,7 @@ class Smeargle(commands.Cog):
             await self.iniChanDict()
             
         if datetime.utcnow() < self.chanDict[ctx.message.channel.id]["lastCmd"] + timedelta(seconds=raidCooldownSeconds):
-            await ctx.message.channel.send(cooldownText)
+            await ctx.send(cooldownText)
             return
         self.chanDict[ctx.message.channel.id]["lastCmd"] = datetime.utcnow()
         # create embed based on raid level
@@ -2063,7 +2149,7 @@ class Smeargle(commands.Cog):
             await self.iniChanDict()
             
         if datetime.utcnow() < self.chanDict[ctx.message.channel.id]["lastCmd"] + timedelta(seconds=raidCooldownSeconds):
-            await ctx.message.channel.send(cooldownText)
+            await ctx.send(cooldownText)
             return
         self.chanDict[ctx.message.channel.id]["lastCmd"] = datetime.utcnow()
         # process the gym name
@@ -2072,7 +2158,11 @@ class Smeargle(commands.Cog):
         gymnameNew = await self.handlePlaceNames(ctx, gymname, self.gymDict, False, ctx.message.author)
         if gymnameNew:
             gymname = self.gymDict[gymnameNew]["name"]
+            gymnameFull = gymname + " ({})".format(mapToName(self.gymDict[gymnameNew]["map"]))
             gymnameOrig = gymname
+        else:
+            gymnameFull = gymname
+        gymname = remove_emojis(gymname)
         gymname = gymname.strip().replace(" ", "-")
         gymname = "".join(char for char in gymname if (char.isalnum() or char == "-"))
         if not gymname:
@@ -2094,6 +2184,10 @@ class Smeargle(commands.Cog):
             if isinstance(roleIds[roleId], int) and str(roleIds[roleId]) in oldContent:
                 newTexts += "<@&{}>".format(str(roleIds[roleId]))
         if gymnameNew:
+            #roleName = self.gymDict[gymnameNew]["role1"]
+            #role = get(ctx.message.channel.guild.roles, name=roleName)
+            #if not role.mention in oldContent:
+            #    newTexts += role.mention
             if self.gymDict[gymnameNew]["role2"]:
                 roleName = self.gymDict[gymnameNew]["role1"]
                 role = get(ctx.message.channel.guild.roles, name=roleName)
@@ -2105,7 +2199,7 @@ class Smeargle(commands.Cog):
         oldTitle = embed_dict["title"]
         partitioned_strings = oldTitle.split(" ")[:3]
         partitioned_string = " ".join(word for word in partitioned_strings)
-        embed_dict["title"] = partitioned_string + " " + gymnameOrig
+        embed_dict["title"] = partitioned_string + " " + gymnameFull
         if gymnameNew:
             for field in embed_dict["fields"]:
                 if field["name"] == mapText:
@@ -2118,14 +2212,147 @@ class Smeargle(commands.Cog):
         activeMsg = await activeChan.fetch_message(self.chanDict[ctx.message.channel.id]["embed1"])
         msgEmbed = activeMsg.embeds[0]
         embed_dict = msgEmbed.to_dict()
-        embed_dict["title"] = partitioned_string + " " + gymnameOrig
+        embed_dict["title"] = partitioned_string + " " + gymnameFull
         newMsgEmbed = discord.Embed.from_dict(embed_dict)
         await activeMsg.edit(content=newTexts, embed=newMsgEmbed)
         print("gym: edited embed1")
 
-        await ctx.send(okayEmoji + ' Gym name has been changed to "{}".'.format(gymname))
+        await ctx.send(okayEmoji + ' Gym has been changed to {}.'.format(gymnameFull))
         
         return
+        
+    # list all gyms in a region
+    @commands.command(name="listgym",
+                      description="E.g., %listgym Newport.",
+                      pass_context=True)
+    async def listgym(self, ctx, *args):
+        if not ctx.guild:
+            return
+        if not ctx.message.channel.id in allChanIds and not ctx.message.channel.id == debugChanId:
+            return
+        
+        if not self.chanDict:
+            await ctx.send(cacheText)
+            print("listgym: no cache, rebuilding...")
+            await self.iniChanDict()
+            
+        regionName = " ".join(word for word in args)
+            
+        if not regionName in regionIds:
+            gymNames = []
+            for gymName in self.gymDict:
+                placeName = self.gymDict[gymName]["town"]
+                if placeName == regionName:
+                    gymNames.append(self.gymDict[gymName]["name"])
+            
+            if len(gymNames) == 0:
+                await ctx.send(errorEmoji + ' There are no gyms in region/town/city "{}" right now.'.format(regionName))
+                return
+        else:
+            gymNames = []
+            for gymName in self.gymDict:
+                if self.gymDict[gymName]["role1"] == regionName or self.gymDict[gymName]["role2"] == regionName:
+                    gymNames.append(self.gymDict[gymName]["name"])
+        
+        gymNames.sort()
+        
+        outString = okayEmoji + " Here is a list of gyms in {}:\n".format(regionName)
+        for index, gymName in enumerate(gymNames):
+            outString += gymName
+            if (index+1)%50 == 0:
+                if index == 49:
+                    await ctx.send(outString)
+                    outString = ""
+                else:
+                    await ctx.send(outString)
+                    outString = ""
+            else:
+                outString += "\n"
+        
+        if outString:
+            await ctx.send(outString[:-1])
+        
+        return
+        
+    # input or update trainer name
+    @commands.command(name="name",
+                      description="E.g., %name LucaLucaBea.",
+                      pass_context=True)
+    async def name(self, ctx, *args):
+        if ctx.guild and not ctx.message.channel.id in allChanIds and not ctx.message.channel.id == debugChanId:
+            return
+        # could be numbers separated by spaces
+        msg = " ".join(arg for arg in args)
+        stringName = msg.strip()
+        if not stringName:
+             await ctx.send(errorEmoji + " Please type your name together with %name.")
+             return
+        # record it
+        if not str(ctx.message.author.id) in self.trainerDict:
+            self.trainerDict[str(ctx.message.author.id)] = {}
+        self.trainerDict[str(ctx.message.author.id)]["name"] = stringName
+        await ctx.send(okayEmoji + " Your trainer name has been set to: " + stringName)
+        self.writeTrainerProfiles()
+            
+        return
+        
+    # print out a list of names to invite
+    @commands.command(name="ninjas",
+                      description="E.g., %ninjas 1.",
+                      pass_context=True)
+    async def ninjas(self, ctx, *args):
+        if not ctx.guild:
+            return
+        if not ctx.message.channel.id in raidChanIds:
+            return
+        if not ctx.message.channel.category.id == raidCategoryId:
+            await ctx.send(notifEmoji + " You can only do this in an active raid channel.")
+            return
+        
+        if not self.chanDict:
+            await ctx.send(cacheText)
+            print("ninjas: no cache, rebuilding...")
+            await self.iniChanDict()
+            
+        if datetime.utcnow() < self.chanDict[ctx.message.channel.id]["lastCmd"] + timedelta(seconds=raidCooldownSeconds):
+            await ctx.send(cooldownText)
+            return
+        self.chanDict[ctx.message.channel.id]["lastCmd"] = datetime.utcnow()
+        
+        for iNum in range(len(self.chanDict[ctx.message.channel.id]["embedTimes"])):
+            if not self.chanDict[ctx.message.channel.id]["embedTimes"][iNum] == 0:
+                break
+        
+        # process the group number and text to send
+        if len(args) > 0:
+            try:
+                groupNum = int(args[0])
+                if groupNum > len(self.chanDict[ctx.message.channel.id]["embedTimes"]) or groupNum < 1 or self.chanDict[ctx.message.channel.id]["embedTimes"][groupNum-1] == 0:
+                    groupNum = iNum
+            except:
+                groupNum = iNum
+        else:
+            groupNum = iNum
+        # find the corresponding group embed    
+        checkChan = get(self.bot.get_all_channels(), id=ctx.message.channel.id)    
+        messageToRead = await checkChan.fetch_message(self.chanDict[ctx.message.channel.id]["embedTimes"][groupNum])
+        # find all the users to @
+        signupDict = self.chanDict[ctx.message.channel.id]["signupLists"][messageToRead.id]
+        remoteNames = []
+        for userId in signupDict:
+            if str(userId) in self.trainerDict and "name" in self.trainerDict[str(userId)] and self.trainerDict[str(userId)]["name"]:
+                if self.chanDict[ctx.message.channel.id]["signupLists"][messageToRead.id][userId] and self.chanDict[ctx.message.channel.id]["signupLists"][messageToRead.id][userId]["remote"]:
+                    remoteNames.append(self.trainerDict[str(userId)]["name"])
+        all_text = ",".join(remoteName for remoteName in remoteNames)
+        # send the text
+        if all_text:
+            await ctx.send(all_text)
+        else:
+            await ctx.send(errorEmoji+"No one has set their trainer name in this group.")
+        
+        #await ctx.message.delete()
+        
+        return  
 
     # manually add raid sightings
     @commands.command(name="raid",
@@ -2316,7 +2543,7 @@ class Smeargle(commands.Cog):
             await ctx.send(ctx.message.author.mention + " So the raid is {}. Final question: what's the gym name?\n".format(raidName) + 
                 "Type as much of the name as you are ok with. It will be used to distiguish this raid from other entries.")
             try:
-                msg = await self.bot.wait_for("message", timeout=timeoutSeconds)
+                msg = await self.bot.wait_for("message", timeout=timeoutSeconds, check=check)
             except:
                 await ctx.send(errorEmoji + " Timeout.")
                 return
@@ -2364,8 +2591,6 @@ class Smeargle(commands.Cog):
             gymnameNew = await self.handlePlaceNames(ctx, gymname, self.gymDict, False, ctx.message.author)
             if not gymnameNew:
                 gymnameNew = gymname
-            else:
-                gymnameNew = self.gymDict[gymnameNew]["name"]
         
             channelId = await self.createRaid(raidType, raidName, raidTimer, gymnameNew, submitTime)
             
@@ -2401,7 +2626,7 @@ class Smeargle(commands.Cog):
             await self.iniChanDict()
             
         if datetime.utcnow() < self.chanDict[ctx.message.channel.id]["lastCmd"] + timedelta(seconds=raidCooldownSeconds):
-            await ctx.message.channel.send(cooldownText)
+            await ctx.send(cooldownText)
             return
         self.chanDict[ctx.message.channel.id]["lastCmd"] = datetime.utcnow()
         
@@ -2449,8 +2674,14 @@ class Smeargle(commands.Cog):
         newMsgEmbed = discord.Embed.from_dict(embed_dict)
         
         oldContent = activeMsg.content
+        loc = oldContent.find(" at gym ")
+        gymnameFull = oldContent[loc+8:]
+        oldContent = oldContent[:loc]
         print("update: original mentions: " + oldContent)
         newTexts = ""
+        for roleId in regionIds:
+            if str(regionIds[roleId]["id"]) in oldContent:
+                newTexts += "<@&{}>".format(str(regionIds[roleId]["id"]))
         for roleId in roleIds:
             if isinstance(roleIds[roleId], int) and str(roleIds[roleId]) in oldContent:
                 newTexts += "<@&{}>".format(str(roleIds[roleId]))
@@ -2466,6 +2697,7 @@ class Smeargle(commands.Cog):
             newTexts += " " + role.mention
             if not role.mention in oldContent:
                 addMentions += " " + role.mention
+        newTexts += " at gym {}".format(gymnameFull)
         
         await activeMsg.edit(content=newTexts, embed=newMsgEmbed)
         
@@ -2493,26 +2725,44 @@ class Smeargle(commands.Cog):
         
         print("update: edited embed1")
         
-        await ctx.send(okayEmoji + " Raid boss has been changed to {}.{}".format(pokemonName, addMentions), allowed_mentions=discord.AllowedMentions(roles=True))
+        await ctx.send(okayEmoji + " Raid boss has been changed to {} at gym {}.{}".format(pokemonName, gymnameFull, addMentions), allowed_mentions=discord.AllowedMentions(roles=True))
         
         return  
+        
+    # show location of a gym
+    @commands.command(name="whereis",
+                      description="E.g., %whereis Random Gym Name",
+                      pass_context=True)
+    async def whereis(self, ctx, *args):
+        return
+    
+        if not ctx.guild:
+            return
+        
+        if not self.chanDict:
+            await ctx.send(cacheText)
+            print("whereis: no cache, rebuilding...")
+            await self.iniChanDict()
+         
+        if len(args) < 1:
+            await ctx.send(errorEmoji + " There is no gym name provided.")
+            return
+        
+        gymname = " ".join(word for word in args)
+        
+        gymnameFound = await self.handlePlaceNames(ctx, gymname, self.gymDict, False, ctx.message.author)
+        
+        if gymnameFound:
+            await ctx.send("Direction to gym {}: {}".format(self.gymDict[gymnameFound]["name"], self.gymDict[gymnameFound]["map"]))
+            print(mapToName(self.gymDict[gymnameFound]["map"]))
+        else:
+            await ctx.send(errorEmoji + " Gym {} is not recorded.".format(gymname))
+
+        return
         
 #---------------------------------------------------------------------------------#
 #------------------------------commands for luca----------------------------------#
 #---------------------------------------------------------------------------------#  
-
-    # add an id to one of the id list
-    @commands.command(pass_context=True)
-    async def addId(self, ctx, idToAdd:int, listName:str):
-        # can only be used by LucaLucaBea
-        if not ctx.message.author.id == lucaId:
-            return
-            
-        self.IdSettings[listName].append(idToAdd)
-        
-        self.writeIds()
-        
-        return
 
     # translate the game master file to a json file
     # for safety reasons, need to manually replace the original json with the generated file
@@ -2897,44 +3147,22 @@ class Smeargle(commands.Cog):
         await ctx.send(okayEmoji + " All entries from GAME_MASTER.json have been processed!")
         
         return
-    
-    # send the region role signup message
-    # key is to save the message id to [emoji, role] mapping
-    # only use this when initially setting up or when Niantic changes something major
+        
     @commands.command(pass_context=True)
-    async def signupMessageRegion(self, ctx):
+    async def tempfun(self, ctx):
         # can only be used by LucaLucaBea
         if not ctx.message.author.id == lucaId:
             return
-        
+            
         singupChan = get(self.bot.get_all_channels(), id=signupChanId)
-        roleIndex = 0
-        roleText = ""
-        roleNames = []
-        for regionName in regionIds:
-            roleNames.append(regionName)
-            roleText += accountEmoji[roleIndex] + " " + regionName + "\n"
-            roleIndex += 1
-        roleText = roleText[:-1]
-            
-        embed = discord.Embed(title="React here to sign up for region roles", color=defaultColor)
-        embed.add_field(name=instructionText, value=roleText, inline=True)
-        imgUrl = r"https://i.imgur.com/KT14zwd.png"
-        embed.set_thumbnail(url=imgUrl)
+        for msgId in self.roleDict:
+            messageToUpdate = await singupChan.fetch_message(int(msgId))
+            for reaction in messageToUpdate.reactions:
+                users = [user async for user in reaction.users()]
+                for user in users:
+                    if user.id == 730444237186793515:
+                        await reaction.remove(user)
         
-        message = await singupChan.send(embed=embed)
-        
-        for iNum in range(len(regionIds)):
-            emoji = accountEmoji[iNum]
-            await message.add_reaction(emoji)
-            
-        self.roleDict[str(message.id)] = {}
-        self.roleDict[str(message.id)]["type"] = "Region"
-        self.roleDict[str(message.id)]["numEmoji"] = len(regionIds)
-        self.roleDict[str(message.id)]["roles"] = roleNames
-        
-        self.writeSignupMsg()
-
         return
         
     # send all role signup messages in role signup channel
@@ -3029,7 +3257,7 @@ class Smeargle(commands.Cog):
         w2 = int(w2 * width)
         imgoCrop = imgo[h1:h2, w1:w2]
         if debugMode:
-            cv.imwrite("Crop_" + debugName + ".png", imgoCrop)
+            cv.imwrite(pngPath + "Crop_" + debugName + ".png", imgoCrop)
         # use varying threshold to find the template
         res = cv.matchTemplate(imgoCrop, imgt, cv.TM_CCOEFF_NORMED)
         threshold = 0.7
@@ -3046,9 +3274,9 @@ class Smeargle(commands.Cog):
             lvldet = 255 - img2
             
             if debugMode:
-                cv.imwrite("Match_" + debugName + str(nAttempt+1) + ".png", lvldet)
+                cv.imwrite(pngPath + "Match_" + debugName + str(nAttempt+1) + ".png", lvldet)
                     
-            im3,contours, heirarchy = cv.findContours(lvldet.copy(), 
+            contours, heirarchy = cv.findContours(lvldet.copy(), 
                                                   cv.RETR_EXTERNAL,
                                                   cv.CHAIN_APPROX_SIMPLE) 
 
@@ -3224,17 +3452,16 @@ class Smeargle(commands.Cog):
                     async with session.get(message.attachments[0].url) as resp:
                         buffer = io.BytesIO(await resp.read())
                 buffer.seek(0)
-                with open("OriginalImage.png", "wb") as f:
+                with open(pngPath + "OriginalImage.png", "wb") as f:
                     shutil.copyfileobj(buffer, f, length=13107200)
                 
-                imgorig = cv.imread("OriginalImage.png", 0) # grayscale
-                cv.imwrite("GrayScaleImage.png", imgorig)
-                print(os.getcwd())                
-                template = cv.imread("ExitButtonTemplate.png", 0) # grayscale
+                imgorig = cv.imread(pngPath + "OriginalImage.png", 0) # grayscale
+                cv.imwrite(pngPath + "GrayScaleImage.png", imgorig)
+                template = cv.imread(pngPath + "ExitButtonTemplate.png", 0) # grayscale
                 imgThres = cv.adaptiveThreshold(imgorig, 255, 
                                                 cv.ADAPTIVE_THRESH_MEAN_C,
                                                 cv.THRESH_BINARY, 11, 2)
-                cv.imwrite("AdaptiveThresImage.png", imgThres)
+                cv.imwrite(pngPath + "AdaptiveThresImage.png", imgThres)
                 cx1, cy1, cnts1 = self.matchTemplate(imgorig, template, 
                                                      172.0, 174.0, 5,
                                                      0.75, 1.0, 0.25, 0.75, 
@@ -3248,9 +3475,11 @@ class Smeargle(commands.Cog):
                 else:
                     isCampfire = True
                     print("on_message: Campfire route")
+                    
+                isCampfire = False
                 
                 if isCampfire:
-                    template = cv.imread("NavButtonTemplate.png", 0) # grayscale
+                    template = cv.imread(pngPath + "NavButtonTemplate.png", 0) # grayscale
                     cx2, cy2, cnts2 = self.matchTemplate(imgorig, template, 
                                                          112.0, 104.0, 5,
                                                          0.75, 1.0, 0.5, 1.0, 
@@ -3259,10 +3488,11 @@ class Smeargle(commands.Cog):
                                                          True, "NavButton")
                                                          
                     if not cnts2 == 1:
-                        await message.channel.send(errorEmoji + " Failed to determine screenshot type. Please try manual input with %raid or ask <@{}> for help.".format(str(lucaId)))
+                        role = get(message.channel.guild.roles, name=managerName)
+                        await message.channel.send(errorEmoji + " Failed to determine screenshot type. Please try manual input with %raid or ask {} for help.".format(role.mention), allowed_mentions=discord.AllowedMentions(roles=True))
                         return
                     
-                    template = 255 - cv.imread("BossSymTemplate1.png", 0) # grayscale
+                    template = 255 - cv.imread(pngPath + "BossSymTemplate1.png", 0) # grayscale
                     cx3, cy3, cnts3 = self.matchTemplate(imgThres, template, 
                                                          42.0, 40.0, 9,
                                                          1.0-2.0*(1.0-cy2), cy2-0.03, 2.6*(1.0-cx2), cx2, 
@@ -3276,7 +3506,7 @@ class Smeargle(commands.Cog):
                     campfireText = tes.image_to_string(imgText,
                                                        config="--psm 6 --oem 3 -c tessedit_char_whitelist=" + 
                                                        "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789 --tessdata-dir " +
-                                                       '"' + tesseract_dir +'"')
+                                                       tessdataPath)
                     print("on_message: text read: " + campfireText)
                     
                     testStrs = campfireText.split("\n")
@@ -3304,7 +3534,8 @@ class Smeargle(commands.Cog):
                             timeRead = timeRead.strip()
                             print("on_message: hatched boss on Campfire")
                     if not foundState:
-                        await message.channel.send(errorEmoji + " Failed to determine raid status. Please try manual input with %raid or ask <@{}> for help.".format(str(lucaId)))
+                        role = get(message.channel.guild.roles, name=managerName)
+                        await message.channel.send(errorEmoji + " Failed to determine raid status. Please try manual input with %raid or ask {} for help.".format(role.mention), allowed_mentions=discord.AllowedMentions(roles=True))
                         return
                     # process the gym name    
                     gymname = ""
@@ -3373,7 +3604,7 @@ class Smeargle(commands.Cog):
                         else:
                             outputString = message.author.mention + " Please choose a name from the following list. Type a number:\n"
                             for index, name in enumerate(nameList):
-                                outputString += "{}.{} ".format(str(index+1), name)
+                                outputString += "{}.{}\n".format(str(index+1), name)
                             await message.channel.send(outputString)
                             try:
                                 msg = await self.bot.wait_for("message", timeout=timeoutSeconds, check=check1)
@@ -3409,7 +3640,7 @@ class Smeargle(commands.Cog):
                         else:
                             outputString = message.author.mention + " Please choose a raid level from the following list. Type a number:\n"
                             for index, name in enumerate(availableRaids2):
-                                outputString += "{}.{} ".format(str(index+1), name)
+                                outputString += "{}.{}\n".format(str(index+1), name)
                             await message.channel.send(outputString)
                             try:
                                 msg = await self.bot.wait_for("message", timeout=timeoutSeconds, check=check1)
@@ -3426,7 +3657,7 @@ class Smeargle(commands.Cog):
                                 return
                             stonam = availableRaids2[nameNum-1]
                 else:
-                    template = cv.imread("BossSymTemplate2.png", 0) # grayscale
+                    template = cv.imread(pngPath + "BossSymTemplate2.png", 0) # grayscale
                     cx3, cy3, cnts3 = self.matchTemplate(imgThres, template, 
                                                          84.0, 72.0, 9,
                                                          0.05, 0.4, 0.2, 0.8, 
@@ -3448,28 +3679,28 @@ class Smeargle(commands.Cog):
                         print("on_message: found this many faces with method 2: " + str(cnts3))
                     
                     if cnts3 == 0:
-                        await message.channel.send(errorEmoji + " Failed to read raid level. Please try manual input with %raid or ask <@{}> for help.".format(str(lucaId)))
+                        role = get(message.channel.guild.roles, name=managerName)
+                        await message.channel.send(errorEmoji + " Failed to read raid level. Please try manual input with %raid or ask {} for help.".format(role.mention), allowed_mentions=discord.AllowedMentions(roles=True))
                         return
 
                     if hatchedboss:
                         imgText = imgorig[int(0.23*height):int(0.37*height), int(0.07*width):int(0.93*width)]
                         w2, h2 = imgText.shape[::-1]
-                        cv.imwrite("Crop_BossName.png", imgText)
+                        cv.imwrite(pngPath + "Crop_BossName.png", imgText)
                         
                         final_strs = []
                         for nThres in range(252, 255):
                             gray, thresh = cv.threshold(imgText, nThres, 255, cv.THRESH_BINARY)
                             
-                            im3,contours, heirarchy = cv.findContours(thresh, 
+                            contours, heirarchy = cv.findContours(thresh, 
                                                                   cv.RETR_EXTERNAL, 
                                                                   cv.CHAIN_APPROX_SIMPLE)
-                            cv.imwrite("Thres_BossNameDirect" + str(nThres) + ".png", thresh)
-                            #test_str_1 = tes.image_to_boxes(thresh,
-                            #                                config='"--psm 7 --oem 3 -c tessedit_char_whitelist=" + 
-                            ##                                "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789 --tessdata-dir r" +
-                            #                                tes.pytesseract.tesseract_cmd)
-                            
-                            test_str_1 = tes.image_to_boxes(thresh,config='--psm 10 --oem 3 -c tessedit_char_whitelist=ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789 --tessdata-dir "/usr/share/tesseract-ocr/4.00/tessdata"') 
+                            cv.imwrite(pngPath + "Thres_BossNameDirect" + str(nThres) + ".png", thresh)
+                            test_str_1 = tes.image_to_boxes(thresh,
+                                                            config="--psm 7 --oem 3 -c tessedit_char_whitelist=" + 
+                                                            "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789 --tessdata-dir " +
+                                                            tessdataPath)
+                        
                             test_str_1 = test_str_1.split("\n")
                             strrr = "".join(b.split(" ")[0] for b in test_str_1)
                             strrr = "".join(char for char in strrr if char.isalnum())
@@ -3485,7 +3716,7 @@ class Smeargle(commands.Cog):
                                                     color=(0, 0, 0),
                                                     thickness=cv.FILLED)
                     
-                            im3,contours, heirarchy = cv.findContours(thresh, 
+                            contours, heirarchy = cv.findContours(thresh, 
                                                                   cv.RETR_EXTERNAL,
                                                                   cv.CHAIN_APPROX_SIMPLE)
                         
@@ -3501,11 +3732,11 @@ class Smeargle(commands.Cog):
                                                     color=(0, 0, 0),
                                                     thickness=cv.FILLED)
                                 
-                            cv.imwrite("Thres_BossNameFill" + str(nThres) + ".png", thresh)
+                            cv.imwrite(pngPath + "Thres_BossNameFill" + str(nThres) + ".png", thresh)
                             test_str_2 = tes.image_to_string(thresh,
                                                              config="--psm 7 --oem 3 -c tessedit_char_whitelist=" +
                                                              "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789 --tessdata-dir " +
-                                                             '"' + tesseract_dir + '"')
+                                                             tessdataPath)
                             test_str_2 = test_str_2.split("\n")
                             test_str_2 = test_str_2[0]
                             strrr = "".join(char for char in test_str_2 if char.isalnum())
@@ -3519,13 +3750,13 @@ class Smeargle(commands.Cog):
                     
                         for rn in range(0, 20):
                             imgTimeCrop = 255 - imgTime[int(0.54*height)+addloff*rn:int(0.60*height)+addloff*rn, int(0.73*width):int(0.95*width)]
-                            cv.imwrite("Crop_TimeHatched" + str(rn+1) + ".png", imgTimeCrop)
+                            cv.imwrite(pngPath + "Crop_TimeHatched" + str(rn+1) + ".png", imgTimeCrop)
                             timerem1 = tes.image_to_string(imgTimeCrop,
                                                            config="--psm 7 --oem 3 -c tessedit_char_whitelist=" +
-                                                                  r'0123456789: --tessdata-dir "'+tesseract_dir +'"')
+                                                                  r'0123456789: --tessdata-dir ' + tessdataPath)
                             timerem2 = tes.image_to_string(imgTimeCrop,
                                                            config="--psm 12 --oem 3 -c tessedit_char_whitelist=" +
-                                                                  r'0123456789: --tessdata-dir "'+tesseract_dir +'"')
+                                                                  r'0123456789: --tessdata-dir ' + tessdataPath)
 
                             timerem = "".join(e for e in timerem1 if (e.isdigit() or e == ":"))
                             print("on_message: timer read 1_" + str(rn+1) + ": " + timerem)
@@ -3600,7 +3831,8 @@ class Smeargle(commands.Cog):
                                         msgText = msg.content.replace(" ", "")
                                         stonam = await self.handleNames(message.channel, msgText, self.pokemonStats, True, message.author)
                                         if not stonam:
-                                            await message.channel.send(errorEmoji + ' Failed to process Pokemon name "{}", please try manual input with %raid or ask <@{}> for help.'.format(str(lucaId)))
+                                            role = get(message.channel.guild.roles, name=managerName)
+                                            await message.channel.send(errorEmoji + ' Failed to process Pokemon name. Please try manual input with %raid or ask {} for help.'.format(role.mention), allowed_mentions=discord.AllowedMentions(roles=True))
                                             return
                                     else:
                                         stonam = availableNames2[0]
@@ -3610,7 +3842,7 @@ class Smeargle(commands.Cog):
                                     else:
                                         outputString = message.author.mention + " Please choose a name from the following list. Type a number:\n"
                                         for index, name in enumerate(nameList):
-                                            outputString += "{}.{} ".format(str(index+1), name)
+                                            outputString += "{}.{}\n".format(str(index+1), name)
                                         await message.channel.send(outputString)
                                         try:
                                             msg = await self.bot.wait_for("message", timeout=timeoutSeconds, check=check1)
@@ -3634,14 +3866,15 @@ class Smeargle(commands.Cog):
                                 if displayName == displayName0 and not y in nameList:
                                     nameList.append(y)
                             if not nameList:
-                                await message.channel.send(errorEmoji + " Failed to process Pokemon name. Please try manual input with %raid or ask <@{}> for help.".format(str(lucaId)))
+                                role = get(message.channel.guild.roles, name=managerName)
+                                await message.channel.send(errorEmoji + ' Failed to process Pokemon name. Please try manual input with %raid or ask {} for help.'.format(role.mention), allowed_mentions=discord.AllowedMentions(roles=True))
                                 return
                             elif len(nameList) == 1:
                                 stonam = nameList[0]
                             else:
                                 outputString = message.author.mention + " Please choose a name from the following list. Type a number:\n"
                                 for index, name in enumerate(nameList):
-                                    outputString += "{}.{} ".format(str(index+1), name)
+                                    outputString += "{}.{}\n".format(str(index+1), name)
                                 await message.channel.send(outputString)
                                 try:
                                     msg = await self.bot.wait_for("message", timeout=timeoutSeconds, check=check1)
@@ -3664,11 +3897,11 @@ class Smeargle(commands.Cog):
                         imgGym = imgorig[int(0.06*height):int(0.16*height), int(0.23*width):int(0.83*width)]
                         imgGym = cv.threshold(imgGym, 245, 255, cv.THRESH_BINARY)[1]
                         imgGym = 255 - imgGym
-                        cv.imwrite("Crop_GymName.png", imgGym)
+                        cv.imwrite(pngPath + "Crop_GymName.png", imgGym)
                         contents2 = tes.image_to_string(imgGym,
                                                         config="--psm 6 --oem 3 -c tessedit_char_whitelist=" +
                                                                "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789 --tessdata-dir " +
-                                                               '"'+tesseract_dir +'"')
+                                                               tessdataPath)
                         print("on_message: gym name read: " + contents2)
                         gymname = " ".join(word.capitalize() for word in contents2.split())
 
@@ -3686,11 +3919,11 @@ class Smeargle(commands.Cog):
                             
                             timerem1 = tes.image_to_string(imgTimeCrop,
                                                            config="--psm 7 --oem 3 -c tessedit_char_whitelist=" +
-                                                                  r'0123456789: --tessdata-dir "'+tesseract_dir +'"')
+                                                                  r'0123456789: --tessdata-dir ' + tessdataPath)
                             timerem2 = tes.image_to_string(imgTimeCrop,
                                                            config="--psm 12 --oem 3 -c tessedit_char_whitelist=" +
-                                                                  r'0123456789: --tessdata-dir "'+tesseract_dir +'"')
-                            cv.imwrite("Crop_TimeEgg" + str(rn+1) + ".png", imgTimeCrop)
+                                                                  r'0123456789: --tessdata-dir ' + tessdataPath)
+                            cv.imwrite(pngPath + "Crop_TimeEgg" + str(rn+1) + ".png", imgTimeCrop)
                         
                             timerem = "".join(e for e in timerem1 if (e.isdigit() or e == ":"))
                             print("on_message: timer read 1_" + str(rn+1) + ": " + timerem)
@@ -3726,11 +3959,11 @@ class Smeargle(commands.Cog):
                         imgGym = imgorig[int(0.06*height):int(0.16*height), int(0.23*width):int(0.83*width)]
                         imgGym = cv.threshold(imgGym, 245, 255, cv.THRESH_BINARY)[1]
                         imgGym = 255 - imgGym
-                        cv.imwrite("Crop_GymName.png", imgGym)
+                        cv.imwrite(pngPath + "Crop_GymName.png", imgGym)
                         contents2 = tes.image_to_string(imgGym,
                                                         config="--psm 6 --oem 3 -c tessedit_char_whitelist=" +
                                                                "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789 --tessdata-dir " +
-                                                               r'"'+tesseract_dir +'"')
+                                                               tessdataPath)
                         print("on_message: gym name read: " + contents2)
                         gymname = " ".join(word.capitalize() for word in contents2.split())
                     
@@ -3744,7 +3977,7 @@ class Smeargle(commands.Cog):
                         else:
                             outputString = message.author.mention + " Please choose a raid level from the following list. Type a number:\n"
                             for index, name in enumerate(availableRaids2):
-                                outputString += "{}.{} ".format(str(index+1), name)
+                                outputString += "{}.{}\n".format(str(index+1), name)
                             await message.channel.send(outputString)
                             try:
                                 msg = await self.bot.wait_for("message", timeout=timeoutSeconds, check=check1)
@@ -3768,10 +4001,9 @@ class Smeargle(commands.Cog):
                     isDupe = await self.findDuplicateChan(message.channel, gymname, message.author, True)
                     if not isDupe:
                         gymnameNew = await self.handlePlaceNames(message.channel, gymname, self.gymDict, True, message.author)
+                        print("dict gym name: " + gymnameNew)
                         if not gymnameNew:
                             gymnameNew = gymname
-                        else:
-                            gymnameNew = self.gymDict[gymnameNew]["name"]
                     
                         channelId = await self.createRaid(2, stonam, raidTimer, gymnameNew, submitTime)
             
@@ -3797,8 +4029,6 @@ class Smeargle(commands.Cog):
                         gymnameNew = await self.handlePlaceNames(message.channel, gymname, self.gymDict, True, message.author)
                         if not gymnameNew:
                             gymnameNew = gymname
-                        else:
-                            gymnameNew = self.gymDict[gymnameNew]["name"]
                     
                         channelId = await self.createRaid(1, stonam, raidTimer, gymnameNew, submitTime)
             
@@ -3815,6 +4045,9 @@ class Smeargle(commands.Cog):
                     
                     return
         
+        elif not message.guild:
+            return
+        
         else:
             return        
         
@@ -3826,26 +4059,27 @@ class Smeargle(commands.Cog):
             print("on_raw_reaction_add: no cache, rebuilding...")
             await self.iniChanDict()
         
-        message_id = str(payload.message_id)
-        if message_id in self.roleDict:
-            print("on_raw_reaction_add: reaction added under role signup message")
-            if str(payload.emoji) in accountEmoji and accountEmoji.index(str(payload.emoji)) < self.roleDict[message_id]["numEmoji"]:
-                print("on_raw_reaction_add: permissible emoji")
-                guild_id = payload.guild_id
-                user_id = payload.user_id
-                guild = await self.bot.fetch_guild(guild_id)
-                member = payload.member
-                roleIndex = accountEmoji.index(str(payload.emoji))
-                roleName = self.roleDict[message_id]["roles"][roleIndex]
-                role = get(guild.roles, name=roleName)
-                if not role in member.roles and not member.bot:
-                    await member.add_roles(role)
-                    print("on_raw_reaction_add: added {} role to {}".format(roleName, member.name))
-            else:
-                print("on_raw_reaction_add: not a permissible emoji")
-                return
-        else:
-            return
+        #message_id = str(payload.message_id)
+        #if message_id in self.roleDict:
+        #    print("on_raw_reaction_add: reaction added under role signup message")
+        #    print(str(payload.emoji).encode("utf-8"))
+        #    if str(payload.emoji) in accountEmoji and accountEmoji.index(str(payload.emoji)) < self.roleDict[message_id]["numEmoji"]:
+        #        print("on_raw_reaction_add: permissible emoji")
+        #        guild_id = payload.guild_id
+        #        user_id = payload.user_id
+        #        guild = await self.bot.fetch_guild(guild_id)
+        #        member = payload.member
+        #        roleIndex = accountEmoji.index(str(payload.emoji))
+        #        roleName = self.roleDict[message_id]["roles"][roleIndex]
+        #        role = get(guild.roles, name=roleName)
+        #        if not role in member.roles and not member.bot:
+        #            await member.add_roles(role)
+        #            print("on_raw_reaction_add: added {} role to {}".format(roleName, member.name))
+        #    else:
+        #        print("on_raw_reaction_add: not a permissible emoji")
+        #        return
+        #else:
+        #    return
             
         return
         
@@ -3855,26 +4089,26 @@ class Smeargle(commands.Cog):
             print("on_raw_reaction_remove: no cache, rebuilding...")
             await self.iniChanDict()
             
-        message_id = str(payload.message_id)
-        if message_id in self.roleDict:
-            print("on_raw_reaction_remove: reaction removed under role signup message")
-            if str(payload.emoji) in accountEmoji and accountEmoji.index(str(payload.emoji)) < self.roleDict[message_id]["numEmoji"]:
-                print("on_raw_reaction_remove: permissible emoji")
-                guild_id = payload.guild_id
-                user_id = payload.user_id
-                guild = await self.bot.fetch_guild(guild_id)
-                member = await guild.fetch_member(user_id)
-                roleIndex = accountEmoji.index(str(payload.emoji))
-                roleName = self.roleDict[message_id]["roles"][roleIndex]
-                role = get(guild.roles, name=roleName)
-                if role in member.roles and not member.bot:
-                    await member.remove_roles(role)
-                    print("on_raw_reaction_remove: removed {} role from {}".format(roleName, member.name))
-            else:
-                print("on_raw_reaction_remove: not a permissible emoji")
-                return
-        else:
-            return
+        #message_id = str(payload.message_id)
+        #if message_id in self.roleDict:
+        #    print("on_raw_reaction_remove: reaction removed under role signup message")
+        #    if str(payload.emoji) in accountEmoji and accountEmoji.index(str(payload.emoji)) < self.roleDict[message_id]["numEmoji"]:
+        #        print("on_raw_reaction_remove: permissible emoji")
+        #        guild_id = payload.guild_id
+        #        user_id = payload.user_id
+        #        guild = await self.bot.fetch_guild(guild_id)
+        #        member = await guild.fetch_member(user_id)
+        #        roleIndex = accountEmoji.index(str(payload.emoji))
+        #        roleName = self.roleDict[message_id]["roles"][roleIndex]
+        #        role = get(guild.roles, name=roleName)
+        #        if role in member.roles and not member.bot:
+        #            await member.remove_roles(role)
+        #            print("on_raw_reaction_remove: removed {} role from {}".format(roleName, member.name))
+        #    else:
+        #        print("on_raw_reaction_remove: not a permissible emoji")
+        #        return
+        #else:
+        #    return
             
         return               
         
@@ -3885,7 +4119,7 @@ class Smeargle(commands.Cog):
     async def on_reaction_add(self, reaction, user):
         if user.bot:
             return
-        if not reaction.message.channel.id in raidChanIds and not reaction.message.channel.id == signupChanId:
+        if not reaction.message.channel.id in raidChanIds and not reaction.message.channel.id == signupChanId and not reaction.message.channel.id == triviaChanId:
             return
         chanId = reaction.message.channel.id
         if chanId in raidChanIds:
@@ -3900,16 +4134,12 @@ class Smeargle(commands.Cog):
                             self.chanDict[chanId]["signupLists"][reaction.message.id][user.id] = {}
                         self.chanDict[chanId]["signupLists"][reaction.message.id][user.id]["num"] = numAdd
                         await self.signupUpdate(reaction.message, chanId)
-                    #if reaction.emoji.name == inpersonEmojiName:
                     elif reaction.emoji == inpersonEmojiString:
-                        #print("on_reaction_add: custom emoji: " + reaction.emoji.name)
                         if not user.id in self.chanDict[chanId]["signupLists"][reaction.message.id]:
                             self.chanDict[chanId]["signupLists"][reaction.message.id][user.id] = {}
                         self.chanDict[chanId]["signupLists"][reaction.message.id][user.id]["in-person"] = 1
                         await self.signupUpdate(reaction.message, chanId)
-                    #elif reaction.emoji.name == remoteEmojiName:
                     elif reaction.emoji == remoteEmojiString:
-                        #print("on_reaction_add: custom emoji: " + reaction.emoji.name)
                         numSignups = 0
                         if len(self.chanDict[chanId]["signupLists"][reaction.message.id]) > 0:
                             for userId in self.chanDict[chanId]["signupLists"][reaction.message.id]:
@@ -3923,9 +4153,7 @@ class Smeargle(commands.Cog):
                         else:
                             await reaction.remove(user)
                             return
-                    #elif reaction.emoji.name == hostEmojiName:
                     elif reaction.emoji == hostEmojiString:
-                        #print("on_reaction_add: custom emoji: " + reaction.emoji.name)
                         alreadyHasHost = False
                         if len(self.chanDict[chanId]["signupLists"][reaction.message.id]) > 0:
                             for userId in self.chanDict[chanId]["signupLists"][reaction.message.id]:
@@ -3945,6 +4173,42 @@ class Smeargle(commands.Cog):
                         return     
             else:
                 return
+                
+        elif reaction.message.id == self.tempMonitorId:
+            if isinstance(reaction.emoji, str) and reaction.emoji == inpersonEmojiString:
+                self.tempMonitorUsers.append(user.id)
+        elif reaction.message.id == self.tempVoteId:
+            if isinstance(reaction.emoji, str) and reaction.emoji in accountEmoji:
+                for voteTable in self.tempVoteUsers:
+                    if user.id in voteTable:
+                        await reaction.remove(user)
+                        return
+                if user.id in self.tempMonitorUsers:
+                    index = accountEmoji.index(reaction.emoji)
+                    try:
+                        self.tempVoteUsers[index].append(user.id)
+                    except:
+                        pass
+                if self.tempIsPoll:
+                    await reaction.remove(user)
+        elif reaction.message.id == self.tempTriviaId:
+            if isinstance(reaction.emoji, str) and reaction.emoji in accountEmoji:
+                for voteTable in self.tempVoteUsers:
+                    if user.id in voteTable:
+                        await reaction.remove(user)
+                        return
+                index = accountEmoji.index(reaction.emoji)
+                try:
+                    self.tempVoteUsers[index].append(user.id)
+                    # log this activity here
+                    outString = user.display_name + " chose " + str(index+1) + ".\n"
+                    with open(configPath + "BotLog.txt", "a", newline="\n") as outfile:
+                        outfile.write(outString)
+                    self.writeGames()
+                except:
+                    pass
+                if self.tempIsPoll:
+                    await reaction.remove(user)
             
         return
         
@@ -3955,7 +4219,7 @@ class Smeargle(commands.Cog):
     async def on_reaction_remove(self, reaction, user):
         if user.bot:
             return
-        if not reaction.message.channel.id in raidChanIds and not reaction.message.channel.id == signupChanId:
+        if not reaction.message.channel.id in raidChanIds and not reaction.message.channel.id == signupChanId and not reaction.message.channel.id == triviaChanId:
             return
         chanId = reaction.message.channel.id
         if chanId in raidChanIds:
@@ -3969,23 +4233,17 @@ class Smeargle(commands.Cog):
                             self.chanDict[chanId]["signupLists"][reaction.message.id][user.id] = {}
                         self.chanDict[chanId]["signupLists"][reaction.message.id][user.id]["num"] = 0
                         await self.signupUpdate(reaction.message, chanId)
-                    #if reaction.emoji.name == inpersonEmojiName:
                     elif reaction.emoji == inpersonEmojiString:
-                        #print("on_reaction_remove: custom emoji: " + reaction.emoji.name)
                         if not user.id in self.chanDict[chanId]["signupLists"][reaction.message.id]:
                             self.chanDict[chanId]["signupLists"][reaction.message.id][user.id] = {}
                         self.chanDict[chanId]["signupLists"][reaction.message.id][user.id]["in-person"] = 0
                         await self.signupUpdate(reaction.message, chanId)
-                    #elif reaction.emoji.name == remoteEmojiName:
                     elif reaction.emoji == remoteEmojiString:
-                        #print("on_reaction_remove: custom emoji: " + reaction.emoji.name)
                         if not user.id in self.chanDict[chanId]["signupLists"][reaction.message.id]:
                             self.chanDict[chanId]["signupLists"][reaction.message.id][user.id] = {}
                         self.chanDict[chanId]["signupLists"][reaction.message.id][user.id]["remote"] = 0
                         await self.signupUpdate(reaction.message, chanId)
-                    #elif reaction.emoji.name == hostEmojiName:
                     elif reaction.emoji == hostEmojiString:
-                        #print("on_reaction_remove: custom emoji: " + reaction.emoji.name)
                         if not user.id in self.chanDict[chanId]["signupLists"][reaction.message.id]:
                             self.chanDict[chanId]["signupLists"][reaction.message.id][user.id] = {}
                         self.chanDict[chanId]["signupLists"][reaction.message.id][user.id]["host"] = 0
@@ -3995,7 +4253,472 @@ class Smeargle(commands.Cog):
                         return     
             else:
                 return
+                
+        elif reaction.message.id == self.tempMonitorId:
+            if isinstance(reaction.emoji, str) and reaction.emoji == inpersonEmojiString:
+                self.tempMonitorUsers.remove(user.id)
+                return
+        elif reaction.message.id == self.tempVoteId:
+            if isinstance(reaction.emoji, str) and reaction.emoji in accountEmoji:
+                index = accountEmoji.index(reaction.emoji)
+                if not self.tempIsPoll:
+                    try:
+                        self.tempVoteUsers[index].remove(user.id)
+                        self.writeGames()
+                    except:
+                        pass
+                return
+        elif reaction.message.id == self.tempTriviaId:
+            if isinstance(reaction.emoji, str) and reaction.emoji in accountEmoji:
+                index = accountEmoji.index(reaction.emoji)
+                if not self.tempIsPoll:
+                    try:
+                        self.tempVoteUsers[index].remove(user.id)
+                        # log this activity here
+                        outString = user.display_name + " un-chose " + str(index+1) + ".\n"
+                        with open(configPath + "BotLog.txt", "a", newline="\n") as outfile:
+                            outfile.write(outString)
+                        self.writeGames()
+                    except:
+                        pass
+                return
             
+        return
+        
+#---------------------------------------------------------------------------------#
+#--------------------------------server games-------------------------------------#
+#---------------------------------------------------------------------------------#
+
+    # add a question to the poll game
+    @commands.command(pass_context=True)
+    async def addq(self, ctx, *args):
+        if not ctx.message.author.id in managerIds:
+            return
+            
+        def check(message):
+            return message.channel == ctx.message.channel and message.author == ctx.message.author
+        
+        qDict = {}
+            
+        await ctx.channel.send(ctx.message.author.mention + " Choose a question type:\n" +
+                                                            "1. Compare (2 choices, number based, user input required)\n" +
+                                                            "2. List (any number of choices, no user input)\n" +
+                                                            "3. Poll (any number of choices, no user input, no correct answer)\n" +
+                                                            "4. Trivia (no random fields, any number of choices, no user input, saved in a separate category)")
+        msg = await self.bot.wait_for("message", check=check)
+        qType = int(msg.content)
+        qDict["type"] = qType
+        
+        await ctx.channel.send(ctx.message.author.mention + " Enter the question text:")
+        msg = await self.bot.wait_for("message", check=check)
+        qText = msg.content
+        qDict["text"] = qText
+        
+        needDM = False
+        if "{" in qText:
+            randList = []
+            qTextSplits = qText.split("{")
+            for qTextSplit in qTextSplits:
+                if "}" in qTextSplit:
+                    randTerm = qTextSplit.split("}")[0]
+                    if "trainer" in randTerm:
+                        needDM = True
+                    randTerm = "{" + randTerm + "}"
+                    randList.append(randTerm)
+            qDict["randText"] = randList
+            
+        if needDM:
+            await ctx.channel.send(ctx.message.author.mention + ' Enter the DM question(s) for the trainer(s) involved, separated with ",":')
+            msg = await self.bot.wait_for("message", check=check)
+            dmTexts = msg.content.split(",")
+            qDict["DMText"] = dmTexts
+            
+        await ctx.channel.send(ctx.message.author.mention + ' Enter the options for players to choose, separated with ",":')
+        msg = await self.bot.wait_for("message", check=check)
+        choiceOptions = msg.content.split(",")
+        qDict["choiceText"] = choiceOptions
+        
+        if qType == 2 or qType == 4:
+            await ctx.channel.send(ctx.message.author.mention + ' Enter the number corresponding to the correct answer:')
+            msg = await self.bot.wait_for("message", check=check)
+            choiceAnswer = int(msg.content)
+            qDict["choiceAnswer"] = choiceAnswer
+        
+        if not "questions" in self.gameLog:
+            self.gameLog["questions"] = []
+        if not "trivia" in self.gameLog:
+            self.gameLog["trivia"] = []
+        if qType == 4:
+            self.gameLog["trivia"].append(qDict)
+        else:
+            self.gameLog["questions"].append(qDict)
+        
+        self.writeGames()
+                
+        return
+        
+    # concludes a new poll game, and add all game results to history
+    @commands.command(pass_context=True)
+    async def conclude(self, ctx):
+        if not ctx.message.author.id in managerIds:
+            return
+            
+        outputString = "Today's top 5 leaderboard:\n"
+        
+        leaderList = []
+        for userIdStr in self.gameLog["score"]["game"]:
+            leaderList.append(["<@{}>".format(userIdStr), self.gameLog["score"]["game"][userIdStr]])
+            if not userIdStr in self.gameLog["score"]["history"]:
+                self.gameLog["score"]["history"][userIdStr] = self.gameLog["score"]["game"][userIdStr]
+            else:
+                self.gameLog["score"]["history"][userIdStr] += self.gameLog["score"]["game"][userIdStr]
+                
+        leaderList.sort(reverse=True, key=lambda x: x[-1])
+        outputString += "Name                    Points\n"
+        outputString += "\n".join((userEntry[0].ljust(20)+"    "+str(userEntry[1])) for userEntry in leaderList[:5])
+        
+        await ctx.channel.send(outputString)
+        
+        self.gameLog["score"]["game"] = {}
+        return
+        
+    # leaderboard for all trivia games till now
+    @commands.command(pass_context=True)
+    async def leader(self, ctx):
+        if not ctx.message.author.id in managerIds:
+            return
+            
+        outputString = "RI PoGo Trivia Leaderboard Top 20:\n"
+        
+        leaderDict = {}
+        for qDict in self.gameLog["trivia"]:
+            for userIdStr in qDict["score"]:
+                userTextStr = "<@{}>".format(userIdStr)
+                if not userTextStr in leaderDict:
+                    leaderDict[userTextStr] = qDict["score"][userIdStr]
+                else:
+                    leaderDict[userTextStr] += qDict["score"][userIdStr]
+        leaderList = sorted(leaderDict.items(), key=lambda item: item[1], reverse=True)
+        totalLen = len(leaderList)
+        if totalLen > 20:
+            totalLen = 20
+        outputString += "Name                    Points\n"
+        outputString += "\n".join((userEntry[0].ljust(20)+"    "+str(userEntry[1])) for userEntry in leaderList[:totalLen])
+        
+        await ctx.channel.send(outputString)
+        
+        return
+        
+    # starts a new round of trivia
+    @commands.command(pass_context=True)
+    async def trivia(self, ctx):
+        if not ctx.message.author.id in managerIds:
+            return
+                
+        for qDict in self.gameLog["trivia"]:
+            if not "score" in qDict:
+                break
+        
+        qDict["score"] = {}
+        qTime = datetime.utcnow() + timedelta(hours=timeZoneHours)
+        qDict["date"] = qTime.strftime(timeFormDate)
+        endTime = qDict["date"] + " " + str(roundHours).rjust(2, "0") + ":00:00 PM"
+        endTime = datetime.strptime(endTime, timeForm)
+                
+        self.tempIsPoll = False
+
+        qDict["votes"] = []
+        for i in range(len(qDict["choiceText"])):
+            qDict["votes"].append([])
+        self.tempVoteUsers = qDict["votes"]
+                    
+        qTextFinal = "Question: " + qDict["text"] + "\n" + \
+                     "\n".join((accountEmoji[i] + " " + qDict["choiceText"][i]) for i in range(len(qDict["choiceText"])))
+        qTextFinal += "\nRound ends at {} PM. 1st correct answer gets 3 points, 2-5 gets 2 points, others gets 1 point.".format(str(roundHours))
+                     
+        questionMsg = await ctx.channel.send(qTextFinal)
+                
+        for i in range(len(qDict["choiceText"])):
+            await questionMsg.add_reaction(accountEmoji[i])
+        
+        qDict["id"] = questionMsg.id
+        self.tempTriviaId = qDict["id"]
+                
+        self.writeGames()
+                
+        cTime = datetime.utcnow() + timedelta(hours=timeZoneHours)
+        while cTime < endTime:
+            await asyncio.sleep(triviaCooldownSeconds)
+            cTime = datetime.utcnow() + timedelta(hours=timeZoneHours)
+        #await asyncio.sleep(30)
+                
+        with open(configPath+"GameLog.json") as infile:
+            tempGameLog = json.load(infile)
+        for qDictTemp in tempGameLog["trivia"]:
+            if "id" in qDictTemp and not qDictTemp["id"] == 0:
+                tempUsers = qDictTemp["votes"]
+                print(str(qDictTemp))
+                break
+        
+        qDict["id"] = 0        
+        qDictTemp["id"] = 0
+        self.tempTriviaId = 0
+                
+        correctAnswer = qDict["choiceAnswer"]
+                
+        aTextFinal = "Round over. The correct answer is {}!\n".format(accountEmoji[correctAnswer-1])
+                
+        if len(tempUsers[correctAnswer-1]) > 0:
+            aTextFinal += "Points distributed today:\n" + \
+                                  "Name                    Points"                  
+            for userIndex, userId in enumerate(tempUsers[correctAnswer-1]):
+                userText = "<@{}>".format(str(userId))
+                if userIndex == 0:
+                    score = 3
+                elif userIndex < 5:
+                    score = 2
+                else:
+                    score = 1
+                aTextFinal += "\n" + userText.ljust(20) + "    " + str(score)
+                qDictTemp["score"][str(userId)] = score
+        else:
+            aTextFinal += "No one got a point today! " + errorEmoji
+                
+        qDict["score"] = qDictTemp["score"].copy()
+        qDict["votes"] = qDictTemp["votes"].copy()
+        await ctx.channel.send(aTextFinal)
+        self.writeGames()
+                
+        return
+                
+    # restarts an unfinished round of trivia
+    @commands.command(pass_context=True)
+    async def triviar(self, ctx):
+        if not ctx.message.author.id in managerIds:
+            return
+            
+        for qDict in self.gameLog["trivia"]:
+            if "id" in qDict and not qDict["id"] == 0:
+                break
+        
+        endTime = qDict["date"] + " " + str(roundHours).rjust(2, "0") + ":00:00 PM"
+        endTime = datetime.strptime(endTime, timeForm)
+                
+        self.tempIsPoll = False
+                
+        cTime = datetime.utcnow() + timedelta(hours=timeZoneHours)
+        while cTime < endTime:
+            await asyncio.sleep(triviaCooldownSeconds)
+            cTime = datetime.utcnow() + timedelta(hours=timeZoneHours)
+            
+        with open(configPath+"GameLog.json") as infile:
+            tempGameLog = json.load(infile)
+        for qDictTemp in tempGameLog["trivia"]:
+            if "id" in qDictTemp and not qDictTemp["id"] == 0:
+                tempUsers = qDictTemp["votes"]
+                break
+                
+        qDictTemp["id"] = 0
+        self.tempTriviaId = 0
+                
+        correctAnswer = qDict["choiceAnswer"]
+                
+        aTextFinal = "Round over. The correct answer is {}!\n".format(accountEmoji[correctAnswer-1])
+                
+        if len(tempUsers[correctAnswer-1]) > 0:
+            aTextFinal += "Points distributed today:\n" + \
+                                  "Name                    Points"                  
+            for userIndex, userId in enumerate(tempUsers[correctAnswer-1]):
+                userText = "<@{}>".format(str(userId))
+                if userIndex == 0:
+                    score = 3
+                elif userIndex < 5:
+                    score = 2
+                else:
+                    score = 1
+                aTextFinal += "\n" + userText.ljust(20) + "    " + str(score)
+                qDictTemp["score"][str(userId)] = score
+        else:
+            aTextFinal += "No one got a point today! " + errorEmoji
+                
+        qDict = qDictTemp
+        await ctx.channel.send(aTextFinal)
+        self.writeGames()
+                
+        return
+    
+    # starts a new round of poll
+    @commands.command(pass_context=True)
+    async def poll(self, ctx):
+        if not ctx.message.author.id in managerIds:
+            return
+            
+        if not "score" in self.gameLog:
+            self.gameLog["score"] = {}
+        if not "history" in self.gameLog["score"]:
+            self.gameLog["score"]["history"] = {}
+        if not "game" in self.gameLog["score"]:
+            self.gameLog["score"]["game"] = {}
+        self.gameLog["score"]["round"] = {}
+        
+        signupMsg = await ctx.channel.send("A round of RI PoGo poll is about to start.\n" +
+                                           "To join, react to this message with {}.\n".format(inpersonEmojiString) + 
+                                           "Round starts in {} seconds.".format(str(roundSeconds)))
+        self.tempMonitorId = signupMsg.id
+        self.tempMonitorUsers = []
+        await signupMsg.add_reaction(inpersonEmojiString)
+        
+        await asyncio.sleep(roundSeconds)
+        
+        self.tempMonitorId = 0
+        
+        nQuestion = random.randint(1, len(self.gameLog["questions"]))
+        qDict = copy.deepcopy(self.gameLog["questions"][nQuestion-1])
+        
+        if qDict["type"] == 3:
+            self.tempIsPoll = True
+        else:
+            self.tempIsPoll = False
+        
+        correctAnswer = []
+        dmUsers = []
+        randPokemon = []
+        if "randText" in qDict:
+            # need to generate random fields for this question
+            for randTerm in qDict["randText"]:
+                replacedText = randTerm
+                if replacedText in qDict["text"]:
+                    if "trainer" in randTerm:
+                        userId = random.choice(self.tempMonitorUsers)
+                        while userId in dmUsers:
+                            userId = random.choice(self.tempMonitorUsers)
+                        dmUsers.append(userId)
+                        replaceText = "<@{}>".format(str(userId))
+                    elif "pokemon" in randTerm:
+                        pokemonName = random.choice(list(self.pokemonStats))
+                        while pokemonName in randPokemon or self.pokemonStats[pokemonName]["released"] == 0:
+                            pokemonName = random.choice(list(self.pokemonStats))
+                        randPokemon.append(pokemonName)
+                        replaceText = pokemonName
+                    else:
+                        randTerm = randTerm.replace("{", "")
+                        randTerm = randTerm.replace("}", "")
+                        tempList = randTerm.split(",")
+                        replaceText = random.choice(tempList)
+                    qDict["text"] = qDict["text"].replace(replacedText, replaceText)
+                    for i in range(len(qDict["choiceText"])):
+                        qDict["choiceText"][i] = qDict["choiceText"][i].replace(replacedText, replaceText)
+                    if "DMText" in qDict:
+                        for i in range(len(qDict["DMText"])):
+                            qDict["DMText"][i] = qDict["DMText"][i].replace(replacedText, replaceText)
+            if dmUsers:
+                maxAnswer = -1
+                totalAnswer = 0
+                for dmUserId in dmUsers:
+                    for dmText in qDict["DMText"]:
+                        await ctx.channel.send("A DM has been sent to <@{}> for additional info. Please stand by...".format(str(dmUserId)))
+                        dmUser = get(ctx.message.channel.guild.members, id=dmUserId)
+                        await dmUser.send(dmText)
+                        print("poll: send to user {}: {}".format(dmUser.name, dmText))
+                        def check(message):
+                            return message.author.id == dmUserId and not message.guild
+                        msg = await self.bot.wait_for("message", check=check)
+                        print("poll: user responded with: {}".format(msg.content))
+                        while True:
+                            try:
+                                answerNum = float(msg.content)
+                                break
+                            except:
+                                await dmUser.send("The answer needs to be a number, please type the answer again:")
+                                print("poll: requesting another answer")
+                                msg = await self.bot.wait_for("message", check=check)
+                                print("poll: user responded with: {}".format(msg.content))
+                        await dmUser.send("Answer received!")
+                        totalAnswer += 1
+                        if answerNum > maxAnswer:
+                            maxAnswer = answerNum
+                            correctAnswer = [totalAnswer]
+                        elif answerNum == maxAnswer:
+                            correctAnswer.append(totalAnswer)
+                await ctx.channel.send("All answers received!")
+        
+        if qDict["type"] == 2:
+            correctAnswer = [qDict["choiceAnswer"]]
+        
+        self.tempVoteUsers = []
+        for i in range(len(qDict["choiceText"])):
+            self.tempVoteUsers.append([])
+        
+        qTextFinal = "Question: " + qDict["text"] + "\n" + \
+                     "\n".join((accountEmoji[i] + " " + qDict["choiceText"][i]) for i in range(len(qDict["choiceText"])))
+        if qDict["type"] == 3:
+            qTextFinal += "\nThis is a poll. React just once (your reaction will be removed)."
+        qTextFinal += "\nRound ends in {} seconds.".format(str(roundSeconds))
+                     
+        questionMsg = await ctx.channel.send(qTextFinal)
+        
+        self.tempVoteId = questionMsg.id
+        for i in range(len(qDict["choiceText"])):
+            await questionMsg.add_reaction(accountEmoji[i])
+            
+        await asyncio.sleep(roundSeconds)
+        
+        self.tempVoteId = 0
+        
+        if qDict["type"] == 3:
+            maxAnswer = -1
+            totalAnswer = 0
+            for listOfUsers in self.tempVoteUsers:
+                totalAnswer += 1
+                if len(listOfUsers) > maxAnswer:
+                    maxAnswer = len(listOfUsers)
+                    correctAnswer = [totalAnswer]
+                elif len(listOfUsers) == maxAnswer:
+                    correctAnswer.append(totalAnswer)
+            if len(correctAnswer) == 1:
+                aTextFinal = "The most voted answer is {}!\n".format(accountEmoji[correctAnswer[0]-1])
+            else:
+                aTextFinal = "The most voted answers are {}!\n".format("".join(accountEmoji[correctAnswerNum-1] for correctAnswerNum in correctAnswer))
+        else:
+            if len(correctAnswer) == 1:
+                aTextFinal = "The correct answer is {}!\n".format(accountEmoji[correctAnswer[0]-1])
+            else:
+                aTextFinal = "The correct answers are {}!\n".format("".join(accountEmoji[correctAnswerNum-1] for correctAnswerNum in correctAnswer))
+        
+        userText = ""
+        for correctAnswerNum in correctAnswer:
+            if len(self.tempVoteUsers[correctAnswerNum-1]) > 0:
+                for userId in self.tempVoteUsers[correctAnswerNum-1]:
+                    if not (userId in dmUsers and len(dmUsers) == 1):
+                        userText += "<@{}>".format(str(userId))
+                        self.gameLog["score"]["round"][str(userId)] = 1
+                        if not str(userId) in self.gameLog["score"]["game"]:
+                            self.gameLog["score"]["game"][str(userId)] = 1
+                        else:
+                            self.gameLog["score"]["game"][str(userId)] += 1
+
+        if not userText:
+            aTextFinal += "No one gets a point!"
+        else:
+            aTextFinal += userText + " will get a point!"
+        
+        await ctx.channel.send(aTextFinal)
+        self.writeGames()
+            
+        return
+        
+    # voids the last round's result
+    @commands.command(pass_context=True)
+    async def void(self, ctx):
+        if not ctx.message.author.id in managerIds:
+            return
+        
+        for userIdStr in self.gameLog["score"]["round"]:
+            if userIdStr in self.gameLog["score"]["game"]:
+                self.gameLog["score"]["game"][userIdStr] -= self.gameLog["score"]["round"][userIdStr]
+        self.writeGames()
+        await ctx.channel.send(okayEmoji + " The last round's results have been voided.")
+        
         return
                         
 def setup(bot):
