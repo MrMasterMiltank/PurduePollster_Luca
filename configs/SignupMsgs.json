@@ -3,21 +3,21 @@
         "type": "Level1",
         "numEmoji": 5,
         "roles": [
-            "RaidSableye",
-            "RaidPurrloin",
-            "RaidYamask",
-            "RaidYamaskGalarian",
-            "RaidPhantump"
+            "RaidMankey",
+            "RaidSwinub",
+            "RaidSpoink",
+            "RaidTepig",
+            "RaidLevel1P5"
         ]
     },
     "1033778426626183301": {
         "type": "Level3",
         "numEmoji": 5,
         "roles": [
-            "RaidGengar",
-            "RaidUmbreon",
-            "RaidDrifblim",
-            "RaidDrapion",
+            "RaidSnorlax",
+            "RaidMawile",
+            "RaidSwalot",
+            "RaidSharpedo",
             "RaidLevel3P5"
         ]
     },
@@ -33,7 +33,7 @@
         "numEmoji": 3,
         "roles": [
             "RaidBanetteMega",
-            "RaidMegaP2",
+            "RaidGyaradosMega",
             "RaidMegaP3"
         ]
     },
@@ -50,7 +50,7 @@
         "type": "Level5",
         "numEmoji": 5,
         "roles": [
-            "RaidGiratinaAltered",
+            "RaidGuzzlord",
             "RaidLevel5P2",
             "RaidLevel5P3",
             "RaidLevel5P4",

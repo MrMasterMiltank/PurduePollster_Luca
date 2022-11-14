@@ -1,1 +1,39 @@
-
+At 2022-10-22 16:33:56.969770, a Sableye is created at gym Livermore Library with 38 minutes left.
+At 2022-10-22 16:41:45.352770, a YamaskGalarian is created at gym Livermore Valley with 24 minutes left.
+At 2022-10-22 12:42:14.685770, user MrMasterMiltank closed a raid group.
+At 2022-10-22 17:02:38.192870, a Sableye is created at gym Livermore Library with 38 minutes left.
+At 2022-10-22 19:48:55.709404, a Level3 is created at gym God's Ten with 24 minutes left.
+At 2022-10-23 14:54:22.594298, a Level5 is created at gym dei Y Cary Quadrangle with 15 minutes left.
+At 2022-10-23 15:48:50.207787, a BanetteMega is created at gym Mural At Arigna with 33 minutes left.
+At 2022-10-23 19:14:16.696284, a GiratinaAltered is created at gym Grant Street Parking Mural with 30 minutes left.
+At 2022-10-23 19:33:12.023345, a GiratinaAltered is created at gym Indiana American with 15 minutes left.
+At 2022-10-23 19:33:40.107903, a Mega is created at gym National Society Of with 28 minutes left.
+At 2022-10-23 21:04:48.252507, a Level5 is created at gym Circle K Coren with 59 minutes left.
+At 2022-10-23 21:10:29.931757, a Level5 is created at gym Theta Tau with 26 minutes left.
+At 2022-10-24 18:53:32.565957, a Mega is created at gym Beering Tribute with 10 minutes left.
+At 2022-10-24 21:54:52.394074, a Level5 is created at gym Circle K with 5 minutes left.
+At 2022-10-24 21:56:55.818414, a Level5 is created at gym Hail Purdue with 30 minutes left.
+At 2022-10-24 21:57:12.528085, a Level5 is created at gym Purdue Bell Tower with 5 minutes left.
+At 2022-10-24 21:57:44.801312, a Level5 is created at gym The Delight of Accomplishment with 20 minutes left.
+At 2022-10-24 21:58:10.125844, a Mega is created at gym Triple XXX with 15 minutes left.
+At 2022-10-26 19:14:05.169798, a Level5 is created at gym Quaker Meeting House Marker with 13 minutes left.
+At 2022-10-26 19:47:50.776444, a Level5 is created at gym Spitzer Court with 25 minutes left.
+At 2022-10-26 19:48:31.007162, a Level5 is created at gym National Society of Black Engineers with 33 minutes left.
+At 2022-10-26 19:49:05.098640, a Level5 is created at gym Class of 1939 Water Sculpture with 11 minutes left.
+At 2022-10-30 17:50:01.606129, a Level5 is created at gym Rankin Track and Field with 27 minutes left.
+At 2022-10-30 17:50:42.331458, a Level5 is created at gym Slayter Center with 43 minutes left.
+At 2022-10-30 17:51:32.048799, a Level5 is created at gym Purdue West Gazebo North with 27 minutes left.
+At 2022-10-31 13:52:51.247326, a Level5 is created at gym Purdue Bell Tower with 42 minutes left.
+At 2022-11-02 14:41:23.899133, a Level5 is created at gym Purdue Bell Tower with 34 minutes left.
+At 2022-11-04 14:42:19.716578, a Level5 is created at gym John Purdue Fountain with 39 minutes left.
+At 2022-11-06 16:41:42.169618, a Level5 is created at gym Beering Sculpture with 24 minutes left.
+At 2022-11-07 19:01:35.248578, a Level5 is created at gym Beering Tribute with 15 minutes left.
+At 2022-11-07 19:48:50.936000, a Level5 is created at gym class of 1939 with 37 minutes left.
+At 2022-11-09 19:14:52.158130, a Level5 is created at gym class of 1939 with 39 minutes left.
+At 2022-11-10 15:04:38.633086, a Level5 is created at gym John Purdue Fountain with 19 minutes left.
+At 2022-11-10 18:15:35.221081, a Level4 is created at gym Hail Purdue with 6 minutes left.
+At 2022-11-11 18:31:41.421628, a Level4 is created at gym Distant Path with 5 minutes left.
+At 2022-11-13 00:07:58.319856, a Elite is created at gym Distant Paths By with 1313 minutes left.
+At 2022-11-13 00:08:21.046405, a Elite is created at gym John Purdue Fountain with 953 minutes left.
+At 2022-11-13 00:08:27.917048, a Elite is created at gym Hail Purdue with 1312 minutes left.
+At 2022-11-13 00:08:37.065572, a Elite is created at gym Purdue Bell Tower with 1132 minutes left.

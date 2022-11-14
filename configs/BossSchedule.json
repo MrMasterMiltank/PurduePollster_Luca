@@ -1,88 +1,90 @@
 {
     "current": {
         "type": "Default",
-        "startTime": "10/20/2022 10:00:00 AM",
-        "endTime": "11/01/2022 10:00:00 AM",
+        "startTime": "11/09/2022 10:00:00 AM",
+        "endTime": "11/17/2022 08:00:00 PM",
         "Level5": [
-            "GiratinaAltered"
+            "Guzzlord"
         ],
         "Elite": [],
         "SuperMega": [],
         "Mega": [
-            "BanetteMega"
+            "GyaradosMega"
         ],
         "Level4": [],
         "Level3": [
-            "Gengar",
-            "Umbreon",
-            "Drifblim",
-            "Drapion"
+            "Snorlax",
+            "Mawile",
+            "Swalot",
+            "Sharpedo"
         ],
         "Level1": [
-            "Sableye",
-            "Purrloin",
-            "Yamask",
-            "YamaskGalarian",
-            "Phantump"
+            "Mankey",
+            "Swinub",
+            "Spoink",
+            "Tepig"
         ]
     },
     "last": {
         "type": "Default",
-        "startTime": "10/17/2022 08:00:00 PM",
-        "endTime": "10/20/2022 10:00:00 AM",
+        "startTime": "11/08/2022 10:00:00 AM",
+        "endTime": "11/09/2022 10:00:00 AM",
         "Level5": [
-            "Xerneas"
+            "Guzzlord"
         ],
-        "Elite": [],
+        "Elite": [
+            "HoopaUnbound"
+        ],
         "SuperMega": [],
         "Mega": [
-            "ManectricMega"
+            "GyaradosMega"
         ],
         "Level4": [],
         "Level3": [
-            "WeezingGalarian",
-            "Azumarill",
-            "Togetic",
-            "Mawile"
+            "Salamence",
+            "BraviaryHisuian",
+            "Druddigon"
         ],
         "Level1": [
-            "VulpixAlola",
-            "Jigglypuff",
-            "Spritzee",
-            "Swirlix",
-            "Dedenne"
+            "RattataAlola",
+            "Gulpin",
+            "Carvanha",
+            "Rockruff"
         ]
     },
     "schedules": [
         {
             "type": "Default",
-            "startTime": "11/01/2022 10:00:00 AM",
-            "endTime": "11/02/2022 08:00:00 PM",
+            "startTime": "11/17/2022 08:00:00 PM",
+            "endTime": "11/23/2022 10:00:00 AM",
             "Level5": [
-                "GiratinaOrigin"
+                "Guzzlord"
             ],
             "Elite": [],
             "SuperMega": [],
             "Mega": [
-                "BanetteMega"
+                "GyaradosMega"
             ],
             "Level4": [],
             "Level3": [
-                "Dragonite",
-                "Sableye",
+                "Salamence",
+                "BraviaryHisuian",
                 "Druddigon"
             ],
             "Level1": [
-                "Duskull"
+                "RattataAlola",
+                "Gulpin",
+                "Carvanha",
+                "Rockruff"
             ]
         },
         {
             "type": "Event",
             "name": "Raid Hour",
-            "startTime": "10/26/2022 06:00:00 PM",
-            "endTime": "10/26/2022 07:00:00 PM",
+            "startTime": "11/16/2022 06:00:00 PM",
+            "endTime": "11/16/2022 07:00:00 PM",
             "Level5": [
-                "GiratinaAltered"
+                "Guzzlord"
             ],
             "raidTimerOverride": {
                 "Level5": 60
@@ -91,10 +93,22 @@
         {
             "type": "Event",
             "name": "Raid Hour",
-            "startTime": "11/02/2022 06:00:00 PM",
-            "endTime": "11/02/2022 07:00:00 PM",
+            "startTime": "11/23/2022 06:00:00 PM",
+            "endTime": "11/23/2022 07:00:00 PM",
             "Level5": [
-                "GiratinaOrigin"
+                "Nihilego"
+            ],
+            "raidTimerOverride": {
+                "Level5": 60
+            }
+        },
+        {
+            "type": "Event",
+            "name": "Raid Hour",
+            "startTime": "11/30/2022 06:00:00 PM",
+            "endTime": "11/30/2022 07:00:00 PM",
+            "Level5": [
+                "Nihilego"
             ],
             "raidTimerOverride": {
                 "Level5": 60

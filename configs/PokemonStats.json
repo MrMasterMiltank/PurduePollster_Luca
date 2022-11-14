@@ -6381,7 +6381,7 @@
             "HyperBeam",
             "PlayRough"
         ],
-        "rLevel": "Level3",
+        "rLevel": "Level4",
         "url": "217",
         "released": 1,
         "shinyReleased": 0
@@ -8649,7 +8649,7 @@
             "FoulPlay",
             "ShadowSneak"
         ],
-        "rLevel": "Level1",
+        "rLevel": "Level3",
         "url": "302",
         "released": 1,
         "shinyReleased": 1
@@ -15879,7 +15879,7 @@
         ],
         "rLevel": "Level1",
         "url": "570",
-        "released": 0,
+        "released": 1,
         "shinyReleased": 0
     },
     "Zoroark": {
@@ -15901,7 +15901,7 @@
         ],
         "rLevel": "Level3",
         "url": "571",
-        "released": 0,
+        "released": 1,
         "shinyReleased": 0
     },
     "Minccino": {
@@ -16810,7 +16810,8 @@
             "EnergyBall",
             "ShadowBall",
             "Overheat",
-            "FlameCharge"
+            "FlameCharge",
+            "Poltergeist"
         ],
         "rLevel": "Level3",
         "url": "609",
@@ -17171,7 +17172,7 @@
         "rLevel": "Level1",
         "url": "624",
         "released": 1,
-        "shinyReleased": 0
+        "shinyReleased": 1
     },
     "Bisharp": {
         "num": 625,
@@ -19295,7 +19296,7 @@
         "rLevel": "Level1",
         "url": "710-s",
         "released": 1,
-        "shinyReleased": 0
+        "shinyReleased": 1
     },
     "PumpkabooAverage": {
         "num": 710,
@@ -19317,7 +19318,7 @@
         "rLevel": "Level1",
         "url": "710",
         "released": 1,
-        "shinyReleased": 0
+        "shinyReleased": 1
     },
     "PumpkabooLarge": {
         "num": 710,
@@ -19339,7 +19340,7 @@
         "rLevel": "Level1",
         "url": "710-l",
         "released": 1,
-        "shinyReleased": 0
+        "shinyReleased": 1
     },
     "PumpkabooSuper": {
         "num": 710,
@@ -19361,7 +19362,7 @@
         "rLevel": "Level1",
         "url": "710-h",
         "released": 1,
-        "shinyReleased": 0
+        "shinyReleased": 1
     },
     "GourgeistSmall": {
         "num": 711,
@@ -20586,7 +20587,6 @@
             "Astonish"
         ],
         "chargeMoves": [
-            "GigaDrain",
             "DazzlingGleam",
             "SeedBomb"
         ],
@@ -20607,7 +20607,6 @@
             "Astonish"
         ],
         "chargeMoves": [
-            "GigaDrain",
             "Moonblast",
             "SeedBomb",
             "SludgeBomb"
@@ -22153,19 +22152,23 @@
         "num": 799,
         "name": "Guzzlord",
         "type": 17,
-        "type2": 8,
+        "type2": 16,
         "att": 188,
         "def": 99,
         "sta": 440,
         "quickMoves": [
-            "Tackle"
+            "Snarl",
+            "DragonTail"
         ],
         "chargeMoves": [
-            "Struggle"
+            "BrutalSwing",
+            "DragonClaw",
+            "Crunch",
+            "SludgeBomb"
         ],
         "rLevel": "Level5",
         "url": "799",
-        "released": 0,
+        "released": 1,
         "shinyReleased": 0
     },
     "Necrozma": {
@@ -24629,6 +24632,28 @@
         "rLevel": "Level5",
         "url": "898-s",
         "released": 0,
+        "shinyReleased": 0
+    },
+    "Ursaluna": {
+        "num": 901,
+        "name": "Ursaluna",
+        "type": 5,
+        "type2": 1,
+        "att": 243,
+        "def": 181,
+        "sta": 277,
+        "quickMoves": [
+            "Tackle",
+            "RockSmash"
+        ],
+        "chargeMoves": [
+            "FirePunch",
+            "ThunderPunch",
+            "AerialAce"
+        ],
+        "rLevel": "Level1",
+        "url": "901",
+        "released": 1,
         "shinyReleased": 0
     },
     "Sneasler": {
